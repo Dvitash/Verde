@@ -1,0 +1,166 @@
+{
+  "name": "rblxexplorer",
+  "displayName": "RblxExplorer",
+  "description": "description",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "rblxexplorerContainer",
+          "title": "Roblox",
+          "icon": "$(folder)"
+        }
+      ]
+    },
+    "views": {
+      "rblxexplorerContainer": [
+        {
+          "id": "rblxexplorer.view",
+          "name": "Explorer"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "rblxexplorer.showOutput",
+        "title": "Show Output"
+      },
+      {
+        "command": "rblxexplorer.renameInstance",
+        "title": "Rename"
+      },
+      {
+        "command": "rblxexplorer.duplicateInstance",
+        "title": "Duplicate"
+      },
+      {
+        "command": "rblxexplorer.deleteInstance",
+        "title": "Delete"
+      },
+      {
+        "command": "rblxexplorer.copyInstance",
+        "title": "Copy"
+      },
+      {
+        "command": "rblxexplorer.pasteInstance",
+        "title": "Paste"
+      },
+      {
+        "command": "rblxexplorer.addInstance",
+        "title": "Add Child..."
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "rblxexplorer.renameInstance",
+        "key": "f2",
+        "when": "focusedView == rblxexplorer.view"
+      },
+      {
+        "command": "rblxexplorer.deleteInstance",
+        "key": "delete",
+        "when": "focusedView == rblxexplorer.view"
+      },
+      {
+        "command": "rblxexplorer.copyInstance",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "focusedView == rblxexplorer.view"
+      },
+      {
+        "command": "rblxexplorer.pasteInstance",
+        "key": "ctrl+v",
+        "mac": "cmd+v",
+        "when": "focusedView == rblxexplorer.view"
+      },
+      {
+        "command": "rblxexplorer.duplicateInstance",
+        "key": "ctrl+d",
+        "mac": "cmd+d",
+        "when": "focusedView == rblxexplorer.view"
+      },
+      {
+        "command": "rblxexplorer.addInstance",
+        "key": "ctrl+shift+a",
+        "when": "focusedView == rblxexplorer.view"
+      },
+      {
+        "command": "rblxexplorer.renameInstance",
+        "key": "enter",
+        "when": "focusedView == rblxexplorer.view"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "rblxexplorer.showOutput",
+          "when": "view == rblxexplorer.view",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "rblxexplorer.renameInstance",
+          "when": "view == rblxexplorer.view",
+          "group": "7_modification"
+        },
+        {
+          "command": "rblxexplorer.duplicateInstance",
+          "when": "view == rblxexplorer.view",
+          "group": "7_modification"
+        },
+        {
+          "command": "rblxexplorer.deleteInstance",
+          "when": "view == rblxexplorer.view",
+          "group": "7_modification"
+        },
+        {
+          "command": "rblxexplorer.copyInstance",
+          "when": "view == rblxexplorer.view",
+          "group": "9_cutcopypaste"
+        },
+        {
+          "command": "rblxexplorer.pasteInstance",
+          "when": "view == rblxexplorer.view",
+          "group": "9_cutcopypaste"
+        },
+        {
+          "command": "rblxexplorer.addInstance",
+          "when": "view == rblxexplorer.view",
+          "group": "7_modification"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.107.0",
+    "@types/ws": "^8.18.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
