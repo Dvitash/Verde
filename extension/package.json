@@ -5,7 +5,10 @@
   "description": "A VS Code extension for exploring and editing Roblox game instances",
   "version": "0.0.4",
   "license": "MIT",
-  "repository": "https://github.com/dvitash/verde",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dvitash/verde.git"
+  },
   "icon": "logo.png",
   "engines": {
     "vscode": "^1.74.0"

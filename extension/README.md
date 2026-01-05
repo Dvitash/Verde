@@ -1,5 +1,7 @@
 # Verde
 
+![Verde Logo](logo.png)
+
 A VS Code extension that provides a tree view explorer window
 
 ## Features
@@ -8,6 +10,8 @@ A VS Code extension that provides a tree view explorer window
 - **Script Opening**: Double-click scripts to open them in VS Code (works with Rojo/Argon/Azul sourcemaps)
 - **Instance Operations**: Rename, duplicate, delete, copy, and paste instances
 - **Properties Panel**: View and edit instance properties right from VS Code
+
+![Sample Image](assets/sample.png)
 
 ## Requirements
 
