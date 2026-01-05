@@ -66,33 +66,6 @@ local function stopAckLoop()
 	end
 end
 
-local function startHandshakePolling()
-	if handshakePollingThread then
-		return
-	end
-
-	handshakePollingThread = task.spawn(function()
-		while currentConnectionState == STATES.CONNECTING do
-			if client then
-				local success = pcall(function()
-					local message = {
-						type = "handshake",
-						timestamp = os.time(),
-					}
-					local jsonString = HttpService:JSONEncode(message)
-					client:send(jsonString)
-				end)
-
-				if not success then
-					print("Failed to send handshake")
-				end
-			end
-
-			task.wait(0.5)
-		end
-	end)
-end
-
 local function startAckLoop()
 	if ackLoopThread then
 		return
@@ -217,7 +190,7 @@ local function disconnect()
 	setButtonState()
 end
 
-local function sendOperationResult(operationId: string, success: boolean, errorMessage: string?, data: string?)
+local function sendOperationResult(operationId: string, success: boolean, errorMessage: string?, data: any?)
 	local message = {
 		type = "operation_result",
 		operationId = operationId,
@@ -260,8 +233,8 @@ local function handleOperation(operationId: string, operation: any)
 	if operationFunction then
 		local result = operationFunction(operation)
 
-		local success = type(result) == "string" or result == true
-		local data = type(result) == "string" and result or nil
+		local success = result ~= nil and result ~= false
+		local data = success and result
 		local errorMessage = if success then nil else "operation_failed"
 
 		sendOperationResult(operationId, success, errorMessage, data)
@@ -284,22 +257,23 @@ local function ensureClient(): boolean
 		client = nil
 	end
 
-	local _newClient = WebSocketClient.new(CONFIG.WS_URL, {
+	local newClient = WebSocketClient.new(CONFIG.WS_URL, {
 		debugMode = CONFIG.DEBUG,
 		silentMode = true,
 	})
 
-	_newClient:on("connect", function()
-		print("WebSocket connected, starting handshake...")
-		startHandshakePolling()
+	newClient:on("connect", function()
+		print("WebSocket connected")
+		currentConnectionState = STATES.CONNECTING
+		setButtonState()
 	end)
 
-	_newClient:on("disconnect", function()
+	newClient:on("disconnect", function()
 		currentConnectionState = STATES.DISCONNECTED
 		setButtonState()
 	end)
 
-	_newClient:on("message", function(data)
+	newClient:on("message", function(data)
 		if not data or not data.type then
 			return
 		end
@@ -320,18 +294,18 @@ local function ensureClient(): boolean
 		end
 	end)
 
-	_newClient:on("error", function(errorMessage: string)
+	newClient:on("error", function(errorMessage: string)
 		print("error:", errorMessage)
 	end)
 
-	local ok = _newClient:connect()
+	local ok = newClient:connect()
 
 	if not ok then
-		_newClient:disconnect()
+		newClient:disconnect()
 		return false
 	end
 
-	client = _newClient
+	client = newClient
 	setButtonState()
 
 	return true
@@ -352,8 +326,6 @@ local function setEnabled(enabled: boolean)
 	connectionEnabled = enabled
 
 	if not connectionEnabled then
-		stopHandshakePolling()
-
 		currentConnectionState = STATES.DISCONNECTED
 		setButtonState()
 		disconnect()
@@ -361,7 +333,7 @@ local function setEnabled(enabled: boolean)
 		return
 	end
 
-	currentConnectionState = STATES.CONNECTING
+	currentConnectionState = STATES.DISCONNECTED
 	setButtonState()
 
 	for _, serviceName in Services do

@@ -1,5 +1,6 @@
 local InstanceMap = require(script.Parent.Parent.Shared.InstanceMap)
 local NameUtils = require(script.Parent.Parent.Utils.name)
+local error = require(script.Parent.Parent.Utils.error)
 
 return function(payload: { nodeId: string }): boolean
 	local nodeId = payload.nodeId

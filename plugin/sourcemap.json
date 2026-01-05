@@ -3,6 +3,20 @@
   "className": "DataModel",
   "children": [
     {
+      "name": "Workspace",
+      "className": "Workspace",
+      "children": [
+        {
+          "name": "Terrain",
+          "className": "Terrain"
+        },
+        {
+          "name": "Camera",
+          "className": "Camera"
+        }
+      ]
+    },
+    {
       "name": "SoundService",
       "className": "SoundService"
     },
@@ -29,6 +43,10 @@
       "className": "StarterPack"
     },
     {
+      "name": "StarterGui",
+      "className": "StarterGui"
+    },
+    {
       "name": "ReplicatedStorage",
       "className": "ReplicatedStorage"
     },
@@ -45,23 +63,32 @@
           "className": "Folder",
           "children": [
             {
-              "name": "WebSocketClient",
-              "className": "ModuleScript",
-              "filePaths": [
-                "src/ServerStorage/Plugin/WebSocketClient.luau"
-              ]
-            },
-            {
-              "name": "RblxExplorer",
-              "className": "Script",
-              "filePaths": [
-                "src/ServerStorage/Plugin/RblxExplorer.server.luau"
-              ]
-            },
-            {
               "name": "Packages",
               "className": "Folder",
               "children": [
+                {
+                  "name": "DumpParser",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Packages/DumpParser.luau"
+                  ],
+                  "children": [
+                    {
+                      "name": "Filter",
+                      "className": "ModuleScript",
+                      "filePaths": [
+                        "src/ServerStorage/Plugin/Packages/DumpParser/Filter.luau"
+                      ]
+                    },
+                    {
+                      "name": "FetchDump",
+                      "className": "ModuleScript",
+                      "filePaths": [
+                        "src/ServerStorage/Plugin/Packages/DumpParser/FetchDump.luau"
+                      ]
+                    }
+                  ]
+                },
                 {
                   "name": "Promise",
                   "className": "ModuleScript",
@@ -72,43 +99,16 @@
               ]
             },
             {
-              "name": "SerializeDatamodel",
-              "className": "ModuleScript",
-              "filePaths": [
-                "src/ServerStorage/Plugin/SerializeDatamodel.luau"
-              ]
-            },
-            {
-              "name": "Utils",
-              "className": "Folder",
-              "children": [
-                {
-                  "name": "print",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Utils/print.luau"
-                  ]
-                },
-                {
-                  "name": "error",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Utils/error.luau"
-                  ]
-                },
-                {
-                  "name": "name",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Utils/name.luau"
-                  ]
-                }
-              ]
-            },
-            {
               "name": "Operations",
               "className": "Folder",
               "children": [
+                {
+                  "name": "rename_instance",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/rename_instance.luau"
+                  ]
+                },
                 {
                   "name": "move_node",
                   "className": "ModuleScript",
@@ -117,10 +117,17 @@
                   ]
                 },
                 {
-                  "name": "rename_instance",
+                  "name": "create_instance",
                   "className": "ModuleScript",
                   "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/rename_instance.luau"
+                    "src/ServerStorage/Plugin/Operations/create_instance.luau"
+                  ]
+                },
+                {
+                  "name": "duplicate_instance",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/duplicate_instance.luau"
                   ]
                 },
                 {
@@ -143,20 +150,6 @@
                   "filePaths": [
                     "src/ServerStorage/Plugin/Operations/paste_instance.luau"
                   ]
-                },
-                {
-                  "name": "duplicate_instance",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/duplicate_instance.luau"
-                  ]
-                },
-                {
-                  "name": "create_instance",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/create_instance.luau"
-                  ]
                 }
               ]
             },
@@ -165,10 +158,10 @@
               "className": "Folder",
               "children": [
                 {
-                  "name": "InstanceMap",
+                  "name": "Clipboard",
                   "className": "ModuleScript",
                   "filePaths": [
-                    "src/ServerStorage/Plugin/Shared/InstanceMap.luau"
+                    "src/ServerStorage/Plugin/Shared/Clipboard.luau"
                   ]
                 },
                 {
@@ -179,12 +172,60 @@
                   ]
                 },
                 {
-                  "name": "Clipboard",
+                  "name": "InstanceMap",
                   "className": "ModuleScript",
                   "filePaths": [
-                    "src/ServerStorage/Plugin/Shared/Clipboard.luau"
+                    "src/ServerStorage/Plugin/Shared/InstanceMap.luau"
                   ]
                 }
+              ]
+            },
+            {
+              "name": "Utils",
+              "className": "Folder",
+              "children": [
+                {
+                  "name": "print",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Utils/print.luau"
+                  ]
+                },
+                {
+                  "name": "name",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Utils/name.luau"
+                  ]
+                },
+                {
+                  "name": "error",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Utils/error.luau"
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "WebSocketClient",
+              "className": "ModuleScript",
+              "filePaths": [
+                "src/ServerStorage/Plugin/WebSocketClient.luau"
+              ]
+            },
+            {
+              "name": "RblxExplorer",
+              "className": "Script",
+              "filePaths": [
+                "src/ServerStorage/Plugin/RblxExplorer.server.luau"
+              ]
+            },
+            {
+              "name": "SerializeDatamodel",
+              "className": "ModuleScript",
+              "filePaths": [
+                "src/ServerStorage/Plugin/SerializeDatamodel.luau"
               ]
             }
           ]
@@ -214,16 +255,6 @@
         {
           "name": "DepthOfField",
           "className": "DepthOfFieldEffect"
-        }
-      ]
-    },
-    {
-      "name": "Workspace",
-      "className": "Workspace",
-      "children": [
-        {
-          "name": "Camera",
-          "className": "Camera"
         }
       ]
     }

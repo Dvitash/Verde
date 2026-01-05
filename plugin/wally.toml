@@ -6,3 +6,4 @@ realm = "shared"
 
 [dependencies]
 Promise = "evaera/promise@4.0.0"
+DumpParser = "csqrl/dump-parser@0.1.0"
