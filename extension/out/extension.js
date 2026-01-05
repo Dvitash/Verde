@@ -38,17 +38,14 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const robloxExplorerProvider_1 = require("./robloxExplorerProvider");
 const backend_1 = require("./backend");
-const propertiesPanel_1 = require("./propertiesPanel");
+const propertiesViewProvider_1 = require("./propertiesViewProvider");
 const robloxClasses_1 = require("./robloxClasses");
 const sourcemapParser_1 = require("./sourcemapParser");
 let backend = null;
 let sourcemapParser;
-function isScriptClass(className) {
-    return className === "Script" || className === "LocalScript" || className === "ModuleScript";
-}
+let propertiesViewProvider;
 let scriptActivationTracker = {};
 async function activate(context) {
-    console.log("Verde extension activated!");
     const outputChannel = vscode.window.createOutputChannel("Verde Backend");
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     context.subscriptions.push(outputChannel);
@@ -62,7 +59,6 @@ async function activate(context) {
         showCollapseAll: true,
         canSelectMany: true
     });
-    console.log("Verde tree view registered:", explorerView);
     context.subscriptions.push(explorerView);
     backend = new backend_1.VerdeBackend(outputChannel, statusBarItem, (snapshot) => {
         explorerProvider.setSnapshot(snapshot);
@@ -74,13 +70,14 @@ async function activate(context) {
     watcher.onDidCreate(() => sourcemapParser.loadSourcemaps());
     watcher.onDidDelete(() => sourcemapParser.loadSourcemaps());
     context.subscriptions.push(watcher);
-    const propertiesPanel = new propertiesPanel_1.PropertiesPanel(backend, explorerView, context.extensionUri);
+    propertiesViewProvider = new propertiesViewProvider_1.PropertiesViewProvider(backend, context.extensionUri);
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(propertiesViewProvider_1.PropertiesViewProvider.viewType, propertiesViewProvider));
     explorerProvider.setBackend(backend);
     explorerView.onDidChangeSelection((event) => {
         const selection = event.selection;
         if (selection.length === 1) {
             const node = selection[0];
-            propertiesPanel.show(node.id);
+            propertiesViewProvider.show(node);
         }
     });
     context.subscriptions.push(vscode.commands.registerCommand('verde.navigateToInstance', async (instanceId) => {
@@ -134,7 +131,7 @@ async function activate(context) {
         const newName = await vscode.window.showInputBox({
             prompt: `Rename "${node.name}"`,
             value: node.name,
-            valueSelection: [0, node.name.length], // Select all text for easy replacement
+            valueSelection: [0, node.name.length],
             placeHolder: "Enter new name",
             validateInput: (value) => {
                 if (!value || value.trim() === "") {
@@ -320,7 +317,7 @@ async function activate(context) {
         }
         const quickPickItems = robloxClasses_1.ROBLOX_CLASS_NAMES.map(className => ({
             label: className,
-            iconPath: vscode.Uri.joinPath(context.extensionUri, "media", `${className}@2x.png`)
+            iconPath: vscode.Uri.joinPath(context.extensionUri, "assets", `${className}@2x.png`)
         }));
         const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
             placeHolder: `Select instance type to add to "${parentNode.name}"`,
@@ -361,6 +358,9 @@ async function activate(context) {
             await vscode.commands.executeCommand('verde.openScript', node);
             scriptActivationTracker[nodeId].count = 0;
         }
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand("verde.togglePropertiesPanelMode", () => {
+        vscode.commands.executeCommand("workbench.view.extension.verdeContainer");
     }));
     context.subscriptions.push(vscode.commands.registerCommand("verde.openScript", async (node) => {
         if (!node) {

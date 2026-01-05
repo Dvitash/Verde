@@ -13,16 +13,6 @@
         {
           "name": "Camera",
           "className": "Camera"
-        },
-        {
-          "name": "Model",
-          "className": "Model",
-          "children": [
-            {
-              "name": "Part",
-              "className": "Part"
-            }
-          ]
         }
       ]
     },
@@ -73,13 +63,6 @@
           "className": "Folder",
           "children": [
             {
-              "name": "WebSocketClient",
-              "className": "ModuleScript",
-              "filePaths": [
-                "src/ServerStorage/Plugin/WebSocketClient.luau"
-              ]
-            },
-            {
               "name": "Packages",
               "className": "Folder",
               "children": [
@@ -97,6 +80,13 @@
                     "src/ServerStorage/Plugin/Packages/DumpParser.luau"
                   ],
                   "children": [
+                    {
+                      "name": "init.d",
+                      "className": "ModuleScript",
+                      "filePaths": [
+                        "src/ServerStorage/Plugin/Packages/DumpParser/init.d.luau"
+                      ]
+                    },
                     {
                       "name": "Util",
                       "className": "Folder",
@@ -118,6 +108,13 @@
                       ]
                     },
                     {
+                      "name": "Filter",
+                      "className": "ModuleScript",
+                      "filePaths": [
+                        "src/ServerStorage/Plugin/Packages/DumpParser/Filter.luau"
+                      ]
+                    },
+                    {
                       "name": "Class",
                       "className": "ModuleScript",
                       "filePaths": [
@@ -130,124 +127,7 @@
                       "filePaths": [
                         "src/ServerStorage/Plugin/Packages/DumpParser/FetchDump.luau"
                       ]
-                    },
-                    {
-                      "name": "Filter",
-                      "className": "ModuleScript",
-                      "filePaths": [
-                        "src/ServerStorage/Plugin/Packages/DumpParser/Filter.luau"
-                      ]
-                    },
-                    {
-                      "name": "init.d",
-                      "className": "ModuleScript",
-                      "filePaths": [
-                        "src/ServerStorage/Plugin/Packages/DumpParser/init.d.luau"
-                      ]
                     }
-                  ]
-                }
-              ]
-            },
-            {
-              "name": "SerializeDatamodel",
-              "className": "ModuleScript",
-              "filePaths": [
-                "src/ServerStorage/Plugin/SerializeDatamodel.luau"
-              ]
-            },
-            {
-              "name": "Utils",
-              "className": "Folder",
-              "children": [
-                {
-                  "name": "print",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Utils/print.luau"
-                  ]
-                },
-                {
-                  "name": "name",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Utils/name.luau"
-                  ]
-                },
-                {
-                  "name": "error",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Utils/error.luau"
-                  ]
-                }
-              ]
-            },
-            {
-              "name": "Operations",
-              "className": "Folder",
-              "children": [
-                {
-                  "name": "move_node",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/move_node.luau"
-                  ]
-                },
-                {
-                  "name": "rename_instance",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/rename_instance.luau"
-                  ]
-                },
-                {
-                  "name": "delete_instance",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/delete_instance.luau"
-                  ]
-                },
-                {
-                  "name": "copy_instance",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/copy_instance.luau"
-                  ]
-                },
-                {
-                  "name": "paste_instance",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/paste_instance.luau"
-                  ]
-                },
-                {
-                  "name": "duplicate_instance",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/duplicate_instance.luau"
-                  ]
-                },
-                {
-                  "name": "create_instance",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/create_instance.luau"
-                  ]
-                },
-                {
-                  "name": "set_property",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/set_property.luau"
-                  ]
-                },
-                {
-                  "name": "get_properties",
-                  "className": "ModuleScript",
-                  "filePaths": [
-                    "src/ServerStorage/Plugin/Operations/get_properties.luau"
                   ]
                 }
               ]
@@ -264,17 +144,113 @@
                   ]
                 },
                 {
+                  "name": "Clipboard",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Shared/Clipboard.luau"
+                  ]
+                },
+                {
                   "name": "Services",
                   "className": "ModuleScript",
                   "filePaths": [
                     "src/ServerStorage/Plugin/Shared/Services.luau"
                   ]
-                },
+                }
+              ]
+            },
+            {
+              "name": "Operations",
+              "className": "Folder",
+              "children": [
                 {
-                  "name": "Clipboard",
+                  "name": "set_property",
                   "className": "ModuleScript",
                   "filePaths": [
-                    "src/ServerStorage/Plugin/Shared/Clipboard.luau"
+                    "src/ServerStorage/Plugin/Operations/set_property.luau"
+                  ]
+                },
+                {
+                  "name": "rename_instance",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/rename_instance.luau"
+                  ]
+                },
+                {
+                  "name": "paste_instance",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/paste_instance.luau"
+                  ]
+                },
+                {
+                  "name": "delete_instance",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/delete_instance.luau"
+                  ]
+                },
+                {
+                  "name": "create_instance",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/create_instance.luau"
+                  ]
+                },
+                {
+                  "name": "duplicate_instance",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/duplicate_instance.luau"
+                  ]
+                },
+                {
+                  "name": "copy_instance",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/copy_instance.luau"
+                  ]
+                },
+                {
+                  "name": "move_node",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/move_node.luau"
+                  ]
+                },
+                {
+                  "name": "get_properties",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Operations/get_properties.luau"
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Utils",
+              "className": "Folder",
+              "children": [
+                {
+                  "name": "error",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Utils/error.luau"
+                  ]
+                },
+                {
+                  "name": "print",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Utils/print.luau"
+                  ]
+                },
+                {
+                  "name": "name",
+                  "className": "ModuleScript",
+                  "filePaths": [
+                    "src/ServerStorage/Plugin/Utils/name.luau"
                   ]
                 }
               ]
@@ -284,6 +260,20 @@
               "className": "Script",
               "filePaths": [
                 "src/ServerStorage/Plugin/Verde.server.luau"
+              ]
+            },
+            {
+              "name": "SerializeDatamodel",
+              "className": "ModuleScript",
+              "filePaths": [
+                "src/ServerStorage/Plugin/SerializeDatamodel.luau"
+              ]
+            },
+            {
+              "name": "WebSocketClient",
+              "className": "ModuleScript",
+              "filePaths": [
+                "src/ServerStorage/Plugin/WebSocketClient.luau"
               ]
             }
           ]

@@ -160,7 +160,7 @@ class RobloxExplorerProvider {
         return this.sorter.sortNodes(nodes);
     }
     getIconForClassName(className) {
-        return vscode.Uri.joinPath(this.extensionUri, "media", `${className}@3x.png`);
+        return vscode.Uri.joinPath(this.extensionUri, "assets", `${className}@3x.png`);
     }
     isScriptClass(className) {
         return className === "Script" || className === "LocalScript" || className === "ModuleScript";

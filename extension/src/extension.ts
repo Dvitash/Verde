@@ -1,21 +1,17 @@
 import * as vscode from "vscode";
 import { RobloxExplorerProvider, Node } from "./robloxExplorerProvider";
 import { VerdeBackend } from "./backend";
-import { PropertiesPanel } from "./propertiesPanel";
+import { PropertiesViewProvider } from "./propertiesViewProvider";
 import { ROBLOX_CLASS_NAMES } from "./robloxClasses";
 import { SourcemapParser } from "./sourcemapParser";
 
 let backend: VerdeBackend | null = null;
 let sourcemapParser: SourcemapParser;
-
-function isScriptClass(className: string): boolean {
-	return className === "Script" || className === "LocalScript" || className === "ModuleScript";
-}
+let propertiesViewProvider: PropertiesViewProvider;
 
 let scriptActivationTracker: { [nodeId: string]: { count: number, timeout: NodeJS.Timeout | null } } = {};
 
 export async function activate(context: vscode.ExtensionContext) {
-	console.log("Verde extension activated!");
 	const outputChannel = vscode.window.createOutputChannel("Verde Backend");
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 
@@ -33,9 +29,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		canSelectMany: true
 	});
 
-	console.log("Verde tree view registered:", explorerView);
 	context.subscriptions.push(explorerView);
-
 
 	backend = new VerdeBackend(outputChannel, statusBarItem, (snapshot) => {
 		explorerProvider.setSnapshot(snapshot);
@@ -49,7 +43,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	watcher.onDidDelete(() => sourcemapParser.loadSourcemaps());
 	context.subscriptions.push(watcher);
 
-	const propertiesPanel = new PropertiesPanel(backend, explorerView, context.extensionUri);
+	propertiesViewProvider = new PropertiesViewProvider(backend, context.extensionUri);
+
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(PropertiesViewProvider.viewType, propertiesViewProvider)
+	);
 
 	explorerProvider.setBackend(backend);
 
@@ -58,7 +56,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		if (selection.length === 1) {
 			const node = selection[0];
-			propertiesPanel.show(node.id);
+			propertiesViewProvider.show(node);
 		}
 	});
 
@@ -126,7 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			const newName = await vscode.window.showInputBox({
 				prompt: `Rename "${node.name}"`,
 				value: node.name,
-				valueSelection: [0, node.name.length], // Select all text for easy replacement
+				valueSelection: [0, node.name.length],
 				placeHolder: "Enter new name",
 				validateInput: (value) => {
 					if (!value || value.trim() === "") {
@@ -345,7 +343,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			const quickPickItems = ROBLOX_CLASS_NAMES.map(className => ({
 				label: className,
-				iconPath: vscode.Uri.joinPath(context.extensionUri, "media", `${className}@2x.png`)
+				iconPath: vscode.Uri.joinPath(context.extensionUri, "assets", `${className}@2x.png`)
 			}));
 
 			const selectedItem = await vscode.window.showQuickPick(
@@ -401,6 +399,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				await vscode.commands.executeCommand('verde.openScript', node);
 				scriptActivationTracker[nodeId].count = 0;
 			}
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand("verde.togglePropertiesPanelMode", () => {
+			vscode.commands.executeCommand("workbench.view.extension.verdeContainer");
 		})
 	);
 

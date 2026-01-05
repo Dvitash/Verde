@@ -13,7 +13,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
@@ -39,7 +41,12 @@
       "verdeContainer": [
         {
           "id": "verde.view",
-          "name": "Verde"
+          "name": "Explorer"
+        },
+        {
+          "type": "webview",
+          "id": "verde.properties",
+          "name": "Properties"
         }
       ]
     },
@@ -75,6 +82,10 @@
       {
         "command": "verde.openScript",
         "title": "Open Script"
+      },
+      {
+        "command": "verde.togglePropertiesPanelMode",
+        "title": "Toggle Properties Panel Mode"
       }
     ],
     "keybindings": [
@@ -115,6 +126,10 @@
         "command": "verde.renameInstance",
         "key": "enter",
         "when": "focusedView == verde.view"
+      },
+      {
+        "command": "verde.togglePropertiesPanelMode",
+        "key": "alt+shift+p"
       }
     ],
     "menus": {
