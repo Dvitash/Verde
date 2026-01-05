@@ -112,7 +112,7 @@ export class RobloxExplorerProvider implements vscode.TreeDataProvider<Node> {
 		return vscode.Uri.joinPath(
 			this.extensionUri,
 			"assets",
-			`${className}@3x.png`
+			`${className}.png`
 		);
 	}
 
