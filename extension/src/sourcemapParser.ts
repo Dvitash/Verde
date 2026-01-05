@@ -41,6 +41,25 @@ export class SourcemapParser {
         return null;
     }
 
+    findInstancePath(fileUri: vscode.Uri): string[] | null {
+        if (!this.sourcemap) {
+            return null;
+        }
+
+        const relativePath = vscode.workspace.asRelativePath(fileUri, false);
+        const baseRelativePath = vscode.workspace.asRelativePath(this.sourcemap.baseUri, false);
+
+        let searchPath = relativePath;
+        if (relativePath.startsWith(baseRelativePath)) {
+            searchPath = relativePath.substring(baseRelativePath.length);
+            if (searchPath.startsWith('/') || searchPath.startsWith('\\')) {
+                searchPath = searchPath.substring(1);
+            }
+        }
+
+        return this.searchNodeForPath(this.sourcemap.node, searchPath, []);
+    }
+
     private searchNode(node: SourcemapNode, path: string[], index: number): string | null {
         if (index >= path.length) {
             return node.filePaths?.[0] || null;
@@ -53,6 +72,23 @@ export class SourcemapParser {
         for (const child of node.children) {
             if (child.name === path[index]) {
                 return this.searchNode(child, path, index + 1);
+            }
+        }
+
+        return null;
+    }
+
+    private searchNodeForPath(node: SourcemapNode, filePath: string, currentPath: string[]): string[] | null {
+        if (node.filePaths?.includes(filePath)) {
+            return currentPath;
+        }
+
+        if (node.children) {
+            for (const child of node.children) {
+                const result = this.searchNodeForPath(child, filePath, [...currentPath, child.name]);
+                if (result) {
+                    return result;
+                }
             }
         }
 

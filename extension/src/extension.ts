@@ -62,6 +62,54 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(
+		vscode.workspace.onDidOpenTextDocument(async (document) => {
+			if (!vscode.workspace.getWorkspaceFolder(document.uri)) {
+				return;
+			}
+
+			try {
+				await sourcemapParser.loadSourcemaps();
+				const instancePath = sourcemapParser.findInstancePath(document.uri);
+
+				if (instancePath) {
+					const node = explorerProvider.getNodeByInstancePath(instancePath);
+					if (node) {
+						await explorerView.reveal(node, { select: true, focus: true });
+					}
+				}
+			} catch (error) {
+				console.debug('Failed to reveal script node in explorer:', error);
+			}
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+			if (!editor || !editor.document) {
+				return;
+			}
+
+			if (!vscode.workspace.getWorkspaceFolder(editor.document.uri)) {
+				return;
+			}
+
+			try {
+				await sourcemapParser.loadSourcemaps();
+				const instancePath = sourcemapParser.findInstancePath(editor.document.uri);
+
+				if (instancePath) {
+					const node = explorerProvider.getNodeByInstancePath(instancePath);
+					if (node) {
+						await explorerView.reveal(node, { select: true, focus: true });
+					}
+				}
+			} catch (error) {
+				console.debug('Failed to reveal script node in explorer:', error);
+			}
+		})
+	);
+
+	context.subscriptions.push(
 		vscode.commands.registerCommand('verde.navigateToInstance', async (instanceId: string) => {
 			const node = explorerProvider.getNodeById(instanceId);
 			if (node) {

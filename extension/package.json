@@ -3,7 +3,7 @@
   "publisher": "Dvitash",
   "displayName": "Verde",
   "description": "A VS Code extension for exploring and editing Roblox game instances",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "MIT",
   "repository": {
     "type": "git",

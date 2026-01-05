@@ -37,6 +37,42 @@ export class RobloxExplorerProvider implements vscode.TreeDataProvider<Node> {
 		return this.nodesById.get(id);
 	}
 
+	public getNodeByInstancePath(instancePath: string[]): Node | undefined {
+		if (instancePath.length === 0) {
+			return undefined;
+		}
+
+		let candidates: Node[] = this.rootIds
+			.map((rootId) => this.nodesById.get(rootId))
+			.filter((node): node is Node => node !== undefined);
+
+		for (let i = 0; i < instancePath.length; i++) {
+			const pathSegment = instancePath[i];
+			let found: Node | undefined;
+
+			for (const candidate of candidates) {
+				if (candidate.name === pathSegment) {
+					found = candidate;
+					break;
+				}
+			}
+
+			if (!found) {
+				return undefined;
+			}
+
+			if (i === instancePath.length - 1) {
+				return found;
+			}
+
+			candidates = found.children
+				.map((childId) => this.nodesById.get(childId))
+				.filter((node): node is Node => node !== undefined);
+		}
+
+		return undefined;
+	}
+
 	public async performOperation(operation: Operation) {
 		if (!this.backend) {
 			throw new Error("Backend not set");
