@@ -14,18 +14,16 @@ export class SourcemapParser {
 
     async loadSourcemaps(): Promise<void> {
         const config = vscode.workspace.getConfiguration('verde');
-        const sourcemapPaths = config.get<string[]>('sourcemapPaths', ['plugin/sourcemap.json']);
+        const sourcemapPath = config.get<string>('sourcemapPath', 'plugin/sourcemap.json');
 
-        for (const path of sourcemapPaths) {
-            try {
-                const uri = vscode.Uri.joinPath(this.workspaceRoot, path);
-                const content = await vscode.workspace.fs.readFile(uri);
-                const sourcemap = JSON.parse(content.toString());
-                const baseUri = vscode.Uri.joinPath(uri, '..');
-                this.sourcemaps.set(path, { node: sourcemap, baseUri });
-            } catch (error) {
-                console.warn(`Failed to load sourcemap at ${path}:`, error);
-            }
+        try {
+            const uri = vscode.Uri.joinPath(this.workspaceRoot, sourcemapPath);
+            const content = await vscode.workspace.fs.readFile(uri);
+            const sourcemap = JSON.parse(content.toString());
+            const baseUri = vscode.Uri.joinPath(uri, '..');
+            this.sourcemaps.set(sourcemapPath, { node: sourcemap, baseUri });
+        } catch (error) {
+            console.warn(`Failed to load sourcemap at ${sourcemapPath}:`, error);
         }
     }
 

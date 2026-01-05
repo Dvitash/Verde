@@ -16,14 +16,9 @@
     "configuration": {
       "title": "Verde",
       "properties": {
-        "verde.sourcemapPaths": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "plugin/sourcemap.json"
-          ],
+        "verde.sourcemapPath": {
+          "type": "string",
+          "default": "sourcemap.json",
           "description": "Path to sourcemap file"
         }
       }

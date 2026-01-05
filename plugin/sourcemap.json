@@ -13,6 +13,16 @@
         {
           "name": "Camera",
           "className": "Camera"
+        },
+        {
+          "name": "Model",
+          "className": "Model",
+          "children": [
+            {
+              "name": "Part",
+              "className": "Part"
+            }
+          ]
         }
       ]
     },

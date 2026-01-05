@@ -139,7 +139,7 @@ local function sendSnapshot()
 	end)
 
 	if not jsonSuccess then
-		print("sendSnapshot: failed to encode JSON:", jsonString)
+		error("sendSnapshot: failed to encode JSON:", jsonString)
 		return
 	end
 
@@ -148,10 +148,8 @@ local function sendSnapshot()
 	local sendSuccess = client:send(jsonString)
 	local totalTime = os.clock() - startTime
 
-	if sendSuccess then
-		print(string.format("sendSnapshot: sent %d nodes (%d KB) in %.3fs", #snapshot.nodes, jsonSizeKB, totalTime))
-	else
-		print("sendSnapshot: failed to send")
+	if not sendSuccess then
+		print("failed to send snapshot")
 	end
 end
 
