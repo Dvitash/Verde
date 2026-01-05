@@ -16,7 +16,7 @@ A VS Code extension that provides a tree view explorer window
 
 ## Extension Installation
 
-### From VSIX (Local Testing)
+### From VSIX
 1. Run `npm run package` in the extension directory to create a `.vsix` file
 2. In VS Code, press Ctrl + Shift + P to open the command palette
 3. Select "Install from VSIX..." and choose the generated `.vsix` file
