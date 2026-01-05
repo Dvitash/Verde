@@ -10,7 +10,7 @@ let sourcemapParser: SourcemapParser;
 
 export async function activate(context: vscode.ExtensionContext) {
 	console.log("RblxExplorer extension activated!");
-	const outputChannel = vscode.window.createOutputChannel("RblxExplorer Backend");
+	const outputChannel = vscode.window.createOutputChannel("Verde Backend");
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 
 	context.subscriptions.push(outputChannel);
@@ -20,7 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri || context.extensionUri;
 	sourcemapParser = new SourcemapParser(workspaceRoot);
 
-	const explorerView = vscode.window.createTreeView("rblxexplorer.view", {
+	const explorerView = vscode.window.createTreeView("verde.view", {
 		treeDataProvider: explorerProvider,
 		dragAndDropController: explorerProvider.getDragAndDropController(),
 		showCollapseAll: true,
@@ -58,7 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('rblxexplorer.navigateToInstance', async (instanceId: string) => {
+		vscode.commands.registerCommand('verde.navigateToInstance', async (instanceId: string) => {
 			const node = explorerProvider.getNodeById(instanceId);
 			if (node) {
 				await explorerView.reveal(node, { select: true, focus: true });
@@ -69,13 +69,13 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.showOutput", () => {
+		vscode.commands.registerCommand("verde.showOutput", () => {
 			outputChannel.show(true);
 		})
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.stopServer", async () => {
+		vscode.commands.registerCommand("verde.stopServer", async () => {
 			if (!backend) {
 				return;
 			}
@@ -84,7 +84,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.startServer", async () => {
+		vscode.commands.registerCommand("verde.startServer", async () => {
 			if (!backend) {
 				return;
 			}
@@ -98,7 +98,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.renameInstance", async (...args) => {
+		vscode.commands.registerCommand("verde.renameInstance", async (...args) => {
 			if (!backend) {
 				return;
 			}
@@ -152,7 +152,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.duplicateInstance", async (...args) => {
+		vscode.commands.registerCommand("verde.duplicateInstance", async (...args) => {
 			if (!backend) {
 				return;
 			}
@@ -201,7 +201,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.deleteInstance", async (...args) => {
+		vscode.commands.registerCommand("verde.deleteInstance", async (...args) => {
 			if (!backend) {
 				return;
 			}
@@ -251,7 +251,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.copyInstance", async (...args) => {
+		vscode.commands.registerCommand("verde.copyInstance", async (...args) => {
 			if (!backend) {
 				return;
 			}
@@ -287,7 +287,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.pasteInstance", async (...args) => {
+		vscode.commands.registerCommand("verde.pasteInstance", async (...args) => {
 			if (!backend) {
 				return;
 			}
@@ -318,7 +318,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.addInstance", async (...args) => {
+		vscode.commands.registerCommand("verde.addInstance", async (...args) => {
 			if (!backend) {
 				return;
 			}
@@ -374,7 +374,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand("rblxexplorer.openScript", async (node: Node) => {
+		vscode.commands.registerCommand("verde.openScript", async (node: Node) => {
 			if (!node) {
 				const treeSelections = explorerView.selection;
 				if (treeSelections && treeSelections.length > 0) {
@@ -418,7 +418,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		return path;
 	}
 
-	const config = vscode.workspace.getConfiguration("rblxexplorer");
+	const config = vscode.workspace.getConfiguration("verde");
 	const autoStart = config.get<boolean>("autoStart", true);
 
 	if (autoStart) {

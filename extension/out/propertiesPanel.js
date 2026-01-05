@@ -49,7 +49,7 @@ class PropertiesPanel {
     show(nodeId) {
         this.currentNodeId = nodeId;
         if (!this.panel) {
-            this.panel = vscode.window.createWebviewPanel("rblxexplorer.properties", `Properties - ${nodeId}`, vscode.ViewColumn.Beside, {
+            this.panel = vscode.window.createWebviewPanel("verde.properties", `Properties - ${nodeId}`, vscode.ViewColumn.Beside, {
                 enableScripts: true,
                 localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "media")],
             });
@@ -444,10 +444,7 @@ class PropertiesPanel {
 					link.textContent = prop.referencedInstanceName;
 					link.addEventListener("click", (e) => {
 						e.preventDefault();
-						vscode.postMessage({
-							type: "navigateToInstance",
-							instanceId: prop.referencedInstanceId,
-						});
+						vscode.commands.executeCommand('verde.navigateToInstance', prop.referencedInstanceId);
 					});
 					wrapper.appendChild(link);
 				} else {

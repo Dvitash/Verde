@@ -1,4 +1,4 @@
-# RblxExplorer
+# Verde
 
 A VS Code extension that provides a tree view explorer for Roblox Studio instances
 

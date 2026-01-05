@@ -138,7 +138,7 @@ export class RobloxExplorerProvider implements vscode.TreeDataProvider<Node> {
 
 		if (this.isScriptClass(element.className)) {
 			treeItem.command = {
-				command: 'rblxexplorer.openScript',
+				command: 'verde.openScript',
 				arguments: [element],
 				title: 'Open Script'
 			};

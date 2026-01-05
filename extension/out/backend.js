@@ -238,8 +238,8 @@ class RblxExplorerBackend {
         const running = this.webSocketServer !== null;
         const clientCount = this.clients.size;
         this.statusBarItem.text = running
-            ? `RblxExplorer: ${clientCount} client(s)`
-            : "RblxExplorer: stopped";
+            ? `Verde: ${clientCount} client(s)`
+            : "Verde: stopped";
         this.statusBarItem.show();
     }
     log(message) {

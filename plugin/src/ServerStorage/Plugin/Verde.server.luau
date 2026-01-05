@@ -1,6 +1,6 @@
 --[[
-	RblxExplorer - Roblox Studio Plugin
-	Compnaion plugin for the RblxExplorer VSCode extension.
+	Verde - Roblox Studio Plugin
+	Companion plugin for the Verde VSCode extension.
 
 	Dvitash 1/4/2026
 --]]
@@ -19,7 +19,7 @@ if RunService:IsRunning() then
 	return
 end
 
-local PLUGIN_NAME = "RblxExplorer"
+local PLUGIN_NAME = "Verde"
 local ICON_DISCONNECTED = "rbxassetid://123083759878787"
 local ICON_CONNECTING = "rbxassetid://112607063142486"
 local ICON_CONNECTED = "rbxassetid://140416565070932"
@@ -28,7 +28,7 @@ local ICON_CONNECTED = "rbxassetid://140416565070932"
 local CONFIG = {
 	WS_URL = "ws://localhost:9000",
 	RETRY_INTERVAL_SECONDS = 1.0,
-	DEBUG = true,
+	DEBUG = false,
 }
 
 local STATES = {
@@ -43,7 +43,7 @@ local PROPERTIES_TO_WATCH = {
 }
 
 local pluginToolbar = plugin:CreateToolbar(PLUGIN_NAME)
-local connectButton = pluginToolbar:CreateButton("Toggle", "toggle connection to vscode", ICON_DISCONNECTED)
+local connectButton = pluginToolbar:CreateButton("Verde", "Toggle Connection", ICON_DISCONNECTED)
 connectButton:SetActive(false)
 
 local client: WebSocketClient.WebSocketClientInstance? = nil

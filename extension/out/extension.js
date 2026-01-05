@@ -45,14 +45,14 @@ let backend = null;
 let sourcemapParser;
 async function activate(context) {
     console.log("RblxExplorer extension activated!");
-    const outputChannel = vscode.window.createOutputChannel("RblxExplorer Backend");
+    const outputChannel = vscode.window.createOutputChannel("Verde Backend");
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     context.subscriptions.push(outputChannel);
     context.subscriptions.push(statusBarItem);
     const explorerProvider = new robloxExplorerProvider_1.RobloxExplorerProvider(context.extensionUri);
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri || context.extensionUri;
     sourcemapParser = new sourcemapParser_1.SourcemapParser(workspaceRoot);
-    const explorerView = vscode.window.createTreeView("rblxexplorer.view", {
+    const explorerView = vscode.window.createTreeView("verde.view", {
         treeDataProvider: explorerProvider,
         dragAndDropController: explorerProvider.getDragAndDropController(),
         showCollapseAll: true,
@@ -82,7 +82,7 @@ async function activate(context) {
             propertiesPanel.hide();
         }
     });
-    context.subscriptions.push(vscode.commands.registerCommand('rblxexplorer.navigateToInstance', async (instanceId) => {
+    context.subscriptions.push(vscode.commands.registerCommand('verde.navigateToInstance', async (instanceId) => {
         const node = explorerProvider.getNodeById(instanceId);
         if (node) {
             await explorerView.reveal(node, { select: true, focus: true });
@@ -91,16 +91,16 @@ async function activate(context) {
             vscode.window.showWarningMessage(`Instance ${instanceId} not found in explorer`);
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.showOutput", () => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.showOutput", () => {
         outputChannel.show(true);
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.stopServer", async () => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.stopServer", async () => {
         if (!backend) {
             return;
         }
         await backend.stop();
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.startServer", async () => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.startServer", async () => {
         if (!backend) {
             return;
         }
@@ -112,7 +112,7 @@ async function activate(context) {
             outputChannel.show(true);
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.renameInstance", async (...args) => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.renameInstance", async (...args) => {
         if (!backend) {
             return;
         }
@@ -159,7 +159,7 @@ async function activate(context) {
             vscode.window.showErrorMessage(`Failed to rename instance: ${String(error)}`);
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.duplicateInstance", async (...args) => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.duplicateInstance", async (...args) => {
         if (!backend) {
             return;
         }
@@ -200,7 +200,7 @@ async function activate(context) {
             vscode.window.showErrorMessage(`Failed to duplicate instances: ${String(error)}`);
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.deleteInstance", async (...args) => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.deleteInstance", async (...args) => {
         if (!backend) {
             return;
         }
@@ -241,7 +241,7 @@ async function activate(context) {
             vscode.window.showErrorMessage(`Failed to delete instances: ${String(error)}`);
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.copyInstance", async (...args) => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.copyInstance", async (...args) => {
         if (!backend) {
             return;
         }
@@ -272,7 +272,7 @@ async function activate(context) {
             vscode.window.showErrorMessage(`Failed to copy instances: ${String(error)}`);
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.pasteInstance", async (...args) => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.pasteInstance", async (...args) => {
         if (!backend) {
             return;
         }
@@ -299,7 +299,7 @@ async function activate(context) {
             vscode.window.showErrorMessage(`Failed to paste instances: ${String(error)}`);
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.addInstance", async (...args) => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.addInstance", async (...args) => {
         if (!backend) {
             return;
         }
@@ -343,7 +343,7 @@ async function activate(context) {
             vscode.window.showErrorMessage(`Failed to create instance: ${String(error)}`);
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand("rblxexplorer.openScript", async (node) => {
+    context.subscriptions.push(vscode.commands.registerCommand("verde.openScript", async (node) => {
         if (!node) {
             const treeSelections = explorerView.selection;
             if (treeSelections && treeSelections.length > 0) {
@@ -382,7 +382,7 @@ async function activate(context) {
         }
         return path;
     }
-    const config = vscode.workspace.getConfiguration("rblxexplorer");
+    const config = vscode.workspace.getConfiguration("verde");
     const autoStart = config.get("autoStart", true);
     if (autoStart) {
         try {

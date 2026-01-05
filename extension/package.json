@@ -1,8 +1,8 @@
 {
-  "name": "rblxexplorer",
+  "name": "verde",
   "publisher": "Dvitash",
-  "displayName": "RblxExplorer",
-  "description": "description",
+  "displayName": "Verde",
+  "description": "A VS Code extension for exploring and editing Roblox game instances",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.74.0"
@@ -14,9 +14,9 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "RblxExplorer",
+      "title": "Verde",
       "properties": {
-        "rblxexplorer.sourcemapPaths": {
+        "verde.sourcemapPaths": {
           "type": "array",
           "items": {
             "type": "string"
@@ -38,124 +38,124 @@
       ]
     },
     "views": {
-      "rblxexplorerContainer": [
+      "verdeContainer": [
         {
-          "id": "rblxexplorer.view",
+          "id": "verde.view",
           "name": "Explorer"
         }
       ]
     },
     "commands": [
       {
-        "command": "rblxexplorer.showOutput",
+        "command": "verde.showOutput",
         "title": "Show Output"
       },
       {
-        "command": "rblxexplorer.renameInstance",
+        "command": "verde.renameInstance",
         "title": "Rename"
       },
       {
-        "command": "rblxexplorer.duplicateInstance",
+        "command": "verde.duplicateInstance",
         "title": "Duplicate"
       },
       {
-        "command": "rblxexplorer.deleteInstance",
+        "command": "verde.deleteInstance",
         "title": "Delete"
       },
       {
-        "command": "rblxexplorer.copyInstance",
+        "command": "verde.copyInstance",
         "title": "Copy"
       },
       {
-        "command": "rblxexplorer.pasteInstance",
+        "command": "verde.pasteInstance",
         "title": "Paste"
       },
       {
-        "command": "rblxexplorer.addInstance",
+        "command": "verde.addInstance",
         "title": "Add Child..."
       },
       {
-        "command": "rblxexplorer.openScript",
+        "command": "verde.openScript",
         "title": "Open Script"
       }
     ],
     "keybindings": [
       {
-        "command": "rblxexplorer.renameInstance",
+        "command": "verde.renameInstance",
         "key": "f2",
-        "when": "focusedView == rblxexplorer.view"
+        "when": "focusedView == verde.view"
       },
       {
-        "command": "rblxexplorer.deleteInstance",
+        "command": "verde.deleteInstance",
         "key": "delete",
-        "when": "focusedView == rblxexplorer.view"
+        "when": "focusedView == verde.view"
       },
       {
-        "command": "rblxexplorer.copyInstance",
+        "command": "verde.copyInstance",
         "key": "ctrl+c",
         "mac": "cmd+c",
-        "when": "focusedView == rblxexplorer.view"
+        "when": "focusedView == verde.view"
       },
       {
-        "command": "rblxexplorer.pasteInstance",
+        "command": "verde.pasteInstance",
         "key": "ctrl+v",
         "mac": "cmd+v",
-        "when": "focusedView == rblxexplorer.view"
+        "when": "focusedView == verde.view"
       },
       {
-        "command": "rblxexplorer.duplicateInstance",
+        "command": "verde.duplicateInstance",
         "key": "ctrl+d",
         "mac": "cmd+d",
-        "when": "focusedView == rblxexplorer.view"
+        "when": "focusedView == verde.view"
       },
       {
-        "command": "rblxexplorer.addInstance",
+        "command": "verde.addInstance",
         "key": "ctrl+shift+a",
-        "when": "focusedView == rblxexplorer.view"
+        "when": "focusedView == verde.view"
       },
       {
-        "command": "rblxexplorer.renameInstance",
+        "command": "verde.renameInstance",
         "key": "enter",
-        "when": "focusedView == rblxexplorer.view"
+        "when": "focusedView == verde.view"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "rblxexplorer.showOutput",
-          "when": "view == rblxexplorer.view",
+          "command": "verde.showOutput",
+          "when": "view == verde.view",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "rblxexplorer.renameInstance",
-          "when": "view == rblxexplorer.view",
+          "command": "verde.renameInstance",
+          "when": "view == verde.view",
           "group": "7_modification"
         },
         {
-          "command": "rblxexplorer.duplicateInstance",
-          "when": "view == rblxexplorer.view",
+          "command": "verde.duplicateInstance",
+          "when": "view == verde.view",
           "group": "7_modification"
         },
         {
-          "command": "rblxexplorer.deleteInstance",
-          "when": "view == rblxexplorer.view",
+          "command": "verde.deleteInstance",
+          "when": "view == verde.view",
           "group": "7_modification"
         },
         {
-          "command": "rblxexplorer.copyInstance",
-          "when": "view == rblxexplorer.view",
+          "command": "verde.copyInstance",
+          "when": "view == verde.view",
           "group": "9_cutcopypaste"
         },
         {
-          "command": "rblxexplorer.pasteInstance",
-          "when": "view == rblxexplorer.view",
+          "command": "verde.pasteInstance",
+          "when": "view == verde.view",
           "group": "9_cutcopypaste"
         },
         {
-          "command": "rblxexplorer.addInstance",
-          "when": "view == rblxexplorer.view",
+          "command": "verde.addInstance",
+          "when": "view == verde.view",
           "group": "7_modification"
         }
       ]

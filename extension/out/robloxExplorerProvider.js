@@ -137,7 +137,7 @@ class RobloxExplorerProvider {
         treeItem.iconPath = this.getIconForClassName(element.className);
         if (this.isScriptClass(element.className)) {
             treeItem.command = {
-                command: 'rblxexplorer.openScript',
+                command: 'verde.openScript',
                 arguments: [element],
                 title: 'Open Script'
             };

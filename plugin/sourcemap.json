@@ -215,10 +215,10 @@
               ]
             },
             {
-              "name": "RblxExplorer",
+              "name": "Verde",
               "className": "Script",
               "filePaths": [
-                "src/ServerStorage/Plugin/RblxExplorer.server.luau"
+                "src/ServerStorage/Plugin/Verde.server.luau"
               ]
             },
             {

@@ -42,7 +42,7 @@ class SourcemapParser {
         this.workspaceRoot = workspaceRoot;
     }
     async loadSourcemaps() {
-        const config = vscode.workspace.getConfiguration('rblxexplorer');
+        const config = vscode.workspace.getConfiguration('verde');
         const sourcemapPaths = config.get('sourcemapPaths', ['plugin/sourcemap.json']);
         for (const path of sourcemapPaths) {
             try {
