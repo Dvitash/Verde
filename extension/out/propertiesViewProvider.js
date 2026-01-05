@@ -81,7 +81,6 @@ class PropertiesViewProvider {
             this.loadPropertiesForPanel(this.separatePanel.webview);
         }
         else if (this.webviewView) {
-            this.webviewView.show();
             setTimeout(() => {
                 this.loadProperties();
             }, 100);

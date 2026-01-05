@@ -3,7 +3,7 @@
   "publisher": "Dvitash",
   "displayName": "Verde",
   "description": "A VS Code extension for exploring and editing Roblox game instances",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "repository": "https://github.com/dvitash/verde",
   "icon": "logo.png",
@@ -82,6 +82,14 @@
       {
         "command": "verde.openScript",
         "title": "Open Script"
+      },
+      {
+        "command": "verde.startServer",
+        "title": "Start Server"
+      },
+      {
+        "command": "verde.stopServer",
+        "title": "Stop Server"
       },
       {
         "command": "verde.togglePropertiesPanelMode",

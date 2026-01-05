@@ -36,63 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RobloxExplorerProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const instanceSorter_1 = require("./instanceSorter");
-class RobloxExplorerDragAndDropController {
-    provider;
-    dropMimeTypes = ["application/vnd.code.tree.robloxexplorer"];
-    dragMimeTypes = ["application/vnd.code.tree.robloxexplorer"];
-    constructor(provider) {
-        this.provider = provider;
-    }
-    async handleDrag(source, dataTransfer) {
-        dataTransfer.set("application/vnd.code.tree.robloxexplorer", new vscode.DataTransferItem(source));
-    }
-    async handleDrop(target, dataTransfer) {
-        const transferItem = dataTransfer.get("application/vnd.code.tree.robloxexplorer");
-        if (!transferItem) {
-            return;
-        }
-        const sourceNodes = transferItem.value;
-        if (sourceNodes.length !== 1) {
-            return;
-        }
-        const sourceNode = sourceNodes[0];
-        if (target && this.isDescendantOf(target, sourceNode)) {
-            vscode.window.showErrorMessage("Cannot move a node to one of its descendants");
-            return;
-        }
-        if (target && target.id === sourceNode.id) {
-            return;
-        }
-        const newParentId = target ? target.id : null;
-        try {
-            const result = await this.provider.performOperation({
-                type: "move_node",
-                nodeId: sourceNode.id,
-                newParentId: newParentId
-            });
-            if (!result.success) {
-                vscode.window.showErrorMessage(`Failed to move node: ${result.error}`);
-            }
-        }
-        catch (error) {
-            vscode.window.showErrorMessage(`Failed to move node: ${String(error)}`);
-        }
-    }
-    isDescendantOf(node, potentialAncestor) {
-        let current = node;
-        while (current.parentId) {
-            if (current.parentId === potentialAncestor.id) {
-                return true;
-            }
-            const parent = this.provider.getNodeById(current.parentId);
-            if (!parent) {
-                break;
-            }
-            current = parent;
-        }
-        return false;
-    }
-}
+const dragAndDropController_1 = require("./dragAndDropController");
 class RobloxExplorerProvider {
     extensionUri;
     onDidChangeTreeDataEmitter = new vscode.EventEmitter();
@@ -118,7 +62,7 @@ class RobloxExplorerProvider {
         return this.backend.sendOperation(operation);
     }
     getDragAndDropController() {
-        return new RobloxExplorerDragAndDropController(this);
+        return new dragAndDropController_1.DragAndDropController(this);
     }
     setSnapshot(snapshot) {
         const nextNodesById = new Map();
@@ -158,6 +102,12 @@ class RobloxExplorerProvider {
                 .filter((node) => node !== undefined);
         }
         return this.sorter.sortNodes(nodes);
+    }
+    getParent(element) {
+        if (!element.parentId) {
+            return undefined;
+        }
+        return this.nodesById.get(element.parentId);
     }
     getIconForClassName(className) {
         return vscode.Uri.joinPath(this.extensionUri, "assets", `${className}@3x.png`);

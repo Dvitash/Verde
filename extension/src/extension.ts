@@ -376,8 +376,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
+
 	context.subscriptions.push(
 		vscode.commands.registerCommand("verde.handleScriptActivation", async (node: Node) => {
+			if (node.children.length > 0) {
+				await vscode.commands.executeCommand('list.toggleExpand', node);
+			}
+
 			const nodeId = node.id;
 
 			if (scriptActivationTracker[nodeId]?.timeout) {
@@ -395,7 +400,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			}, 300);
 
 			if (scriptActivationTracker[nodeId].count === 2) {
-				console.log('Double-click detected, opening script');
 				await vscode.commands.executeCommand('verde.openScript', node);
 				scriptActivationTracker[nodeId].count = 0;
 			}
