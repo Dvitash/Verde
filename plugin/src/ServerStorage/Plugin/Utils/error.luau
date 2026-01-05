@@ -5,5 +5,5 @@ return function(...: any)
 		args[i] = tostring(arg)
 	end
 
-	error("[RblxExplorer] " .. table.concat(args, " "))
+	error("[Verde] " .. table.concat(args, " "))
 end

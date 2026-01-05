@@ -1,15 +1,15 @@
 import * as vscode from "vscode";
-import { RblxExplorerBackend } from "./backend";
+import { VerdeBackend } from "./backend";
 import { Node } from "./robloxExplorerProvider";
 
 export class PropertiesPanel {
     private panel: vscode.WebviewPanel | null = null;
-    private backend: RblxExplorerBackend;
+    private backend: VerdeBackend;
     private treeView: vscode.TreeView<Node>;
     private extensionUri: vscode.Uri;
     private currentNodeId: string | null = null;
 
-    constructor(backend: RblxExplorerBackend, treeView: vscode.TreeView<Node>, extensionUri: vscode.Uri) {
+    constructor(backend: VerdeBackend, treeView: vscode.TreeView<Node>, extensionUri: vscode.Uri) {
         this.backend = backend;
         this.treeView = treeView;
         this.extensionUri = extensionUri;
@@ -609,7 +609,7 @@ export class PropertiesPanel {
 
     private async handleMessage(message: any): Promise<void> {
         if (message.type === "navigateToInstance") {
-            vscode.commands.executeCommand("rblxexplorer.navigateToInstance", message.instanceId);
+            vscode.commands.executeCommand("verde.navigateToInstance", message.instanceId);
             return;
         }
 

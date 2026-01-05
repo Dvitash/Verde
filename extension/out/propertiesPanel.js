@@ -624,7 +624,7 @@ class PropertiesPanel {
     }
     async handleMessage(message) {
         if (message.type === "navigateToInstance") {
-            vscode.commands.executeCommand("rblxexplorer.navigateToInstance", message.instanceId);
+            vscode.commands.executeCommand("verde.navigateToInstance", message.instanceId);
             return;
         }
         if (this.currentNodeId && message.type === "setProperty") {

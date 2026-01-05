@@ -1,15 +1,15 @@
 import * as vscode from "vscode";
 import { RobloxExplorerProvider, Node } from "./robloxExplorerProvider";
-import { RblxExplorerBackend } from "./backend";
+import { VerdeBackend } from "./backend";
 import { PropertiesPanel } from "./propertiesPanel";
 import { ROBLOX_CLASS_NAMES } from "./robloxClasses";
 import { SourcemapParser } from "./sourcemapParser";
 
-let backend: RblxExplorerBackend | null = null;
+let backend: VerdeBackend | null = null;
 let sourcemapParser: SourcemapParser;
 
 export async function activate(context: vscode.ExtensionContext) {
-	console.log("RblxExplorer extension activated!");
+	console.log("Verde extension activated!");
 	const outputChannel = vscode.window.createOutputChannel("Verde Backend");
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 
@@ -27,11 +27,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		canSelectMany: true
 	});
 
-	console.log("RblxExplorer tree view registered:", explorerView);
+	console.log("Verde tree view registered:", explorerView);
 	context.subscriptions.push(explorerView);
 
 
-	backend = new RblxExplorerBackend(outputChannel, statusBarItem, (snapshot) => {
+	backend = new VerdeBackend(outputChannel, statusBarItem, (snapshot) => {
 		explorerProvider.setSnapshot(snapshot);
 	}, () => {
 		explorerProvider.setSnapshot({ nodes: [], rootIds: [] });
@@ -91,7 +91,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			try {
 				await backend.start();
 			} catch (error) {
-				vscode.window.showErrorMessage(`rblxexplorer backend failed to start: ${String(error)}`);
+				vscode.window.showErrorMessage(`verde backend failed to start: ${String(error)}`);
 				outputChannel.show(true);
 			}
 		})
@@ -425,7 +425,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		try {
 			await backend.start();
 		} catch (error) {
-			vscode.window.showErrorMessage(`rblxexplorer backend autostart failed: ${String(error)}`);
+			vscode.window.showErrorMessage(`verde backend autostart failed: ${String(error)}`);
 			outputChannel.show(true);
 		}
 	}

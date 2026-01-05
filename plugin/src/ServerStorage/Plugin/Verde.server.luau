@@ -263,7 +263,7 @@ local function ensureClient(): boolean
 	})
 
 	newClient:on("connect", function()
-		print("WebSocket connected")
+		print("Connecting...")
 		currentConnectionState = STATES.CONNECTING
 		setButtonState()
 	end)
@@ -290,7 +290,7 @@ local function ensureClient(): boolean
 			startAckLoop()
 
 			task.defer(sendSnapshot)
-			print("sync complete")
+			print("Connected!")
 		end
 	end)
 

@@ -31,7 +31,7 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "rblxexplorerContainer",
+          "id": "verdeContainer",
           "title": "Roblox",
           "icon": "$(folder)"
         }

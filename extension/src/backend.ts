@@ -48,7 +48,7 @@ type BackendOutboundMessage =
     | { type: "operation"; requestId?: string; operationId: string; operation: Operation }
     | { type: "request_snapshot"; requestId?: string };
 
-export class RblxExplorerBackend {
+export class VerdeBackend {
     private readonly outputChannel: vscode.OutputChannel;
     private readonly statusBarItem: vscode.StatusBarItem;
     private readonly onSnapshotReceived: (snapshot: Snapshot) => void;
@@ -84,7 +84,7 @@ export class RblxExplorerBackend {
             await this.stop();
         }
 
-        const config = vscode.workspace.getConfiguration("rblxexplorer");
+        const config = vscode.workspace.getConfiguration("verde");
         const port = config.get<number>("port", 9000);
         const hostSetting = (config.get<string>("host", "") || "").trim();
         const host = hostSetting.length > 0 ? hostSetting : undefined;
@@ -304,6 +304,6 @@ export class RblxExplorerBackend {
     }
 
     private log(message: string): void {
-        this.outputChannel.appendLine(`[rblxexplorer] ${message}`);
+        this.outputChannel.appendLine(`[verde] ${message}`);
     }
 }

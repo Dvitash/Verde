@@ -33,10 +33,10 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RblxExplorerBackend = void 0;
+exports.VerdeBackend = void 0;
 const vscode = __importStar(require("vscode"));
 const ws_1 = require("ws");
-class RblxExplorerBackend {
+class VerdeBackend {
     outputChannel;
     statusBarItem;
     onSnapshotReceived;
@@ -62,7 +62,7 @@ class RblxExplorerBackend {
             }
             await this.stop();
         }
-        const config = vscode.workspace.getConfiguration("rblxexplorer");
+        const config = vscode.workspace.getConfiguration("verde");
         const port = config.get("port", 9000);
         const hostSetting = (config.get("host", "") || "").trim();
         const host = hostSetting.length > 0 ? hostSetting : undefined;
@@ -243,8 +243,8 @@ class RblxExplorerBackend {
         this.statusBarItem.show();
     }
     log(message) {
-        this.outputChannel.appendLine(`[rblxexplorer] ${message}`);
+        this.outputChannel.appendLine(`[verde] ${message}`);
     }
 }
-exports.RblxExplorerBackend = RblxExplorerBackend;
+exports.VerdeBackend = VerdeBackend;
 //# sourceMappingURL=backend.js.map

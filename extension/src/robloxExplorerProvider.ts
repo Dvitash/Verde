@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { RblxExplorerBackend, Operation } from "./backend";
+import { VerdeBackend, Operation } from "./backend";
 
 export type Node = {
 	id: string;
@@ -87,11 +87,11 @@ export class RobloxExplorerProvider implements vscode.TreeDataProvider<Node> {
 
 	private nodesById: Map<string, Node> = new Map();
 	private rootIds: string[] = [];
-	private backend: RblxExplorerBackend | null = null;
+	private backend: VerdeBackend | null = null;
 
 	constructor(private readonly extensionUri: vscode.Uri) { }
 
-	public setBackend(backend: RblxExplorerBackend): void {
+	public setBackend(backend: VerdeBackend): void {
 		this.backend = backend;
 	}
 

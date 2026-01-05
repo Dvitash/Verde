@@ -44,7 +44,7 @@ const sourcemapParser_1 = require("./sourcemapParser");
 let backend = null;
 let sourcemapParser;
 async function activate(context) {
-    console.log("RblxExplorer extension activated!");
+    console.log("Verde extension activated!");
     const outputChannel = vscode.window.createOutputChannel("Verde Backend");
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     context.subscriptions.push(outputChannel);
@@ -58,9 +58,9 @@ async function activate(context) {
         showCollapseAll: true,
         canSelectMany: true
     });
-    console.log("RblxExplorer tree view registered:", explorerView);
+    console.log("Verde tree view registered:", explorerView);
     context.subscriptions.push(explorerView);
-    backend = new backend_1.RblxExplorerBackend(outputChannel, statusBarItem, (snapshot) => {
+    backend = new backend_1.VerdeBackend(outputChannel, statusBarItem, (snapshot) => {
         explorerProvider.setSnapshot(snapshot);
     }, () => {
         explorerProvider.setSnapshot({ nodes: [], rootIds: [] });
@@ -108,7 +108,7 @@ async function activate(context) {
             await backend.start();
         }
         catch (error) {
-            vscode.window.showErrorMessage(`rblxexplorer backend failed to start: ${String(error)}`);
+            vscode.window.showErrorMessage(`verde backend failed to start: ${String(error)}`);
             outputChannel.show(true);
         }
     }));
@@ -389,7 +389,7 @@ async function activate(context) {
             await backend.start();
         }
         catch (error) {
-            vscode.window.showErrorMessage(`rblxexplorer backend autostart failed: ${String(error)}`);
+            vscode.window.showErrorMessage(`verde backend autostart failed: ${String(error)}`);
             outputChannel.show(true);
         }
     }

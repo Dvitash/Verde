@@ -11,7 +11,7 @@ A VS Code extension that provides a tree view explorer for Roblox Studio instanc
 
 ## Requirements
 
-- Roblox Studio with the RblxExplorer plugin installed
+- Roblox Studio with the Verde plugin installed
 - A Rojo or Azul setup with sourcemap generation (for script opening functionality)
 
 ## Installation
@@ -26,7 +26,7 @@ Once published, install from the VS Code marketplace.
 
 ## Setup
 
-1. Install the RblxExplorer plugin in Roblox Studio
+1. Install the Verde plugin in Roblox Studio
 2. Open your VS Code workspace
 3. The extension will automatically start a WebSocket server
 4. Open Roblox Studio and run your game with the plugin
@@ -34,10 +34,10 @@ Once published, install from the VS Code marketplace.
 
 ## Extension Settings
 
-* `rblxexplorer.sourcemapPaths`: Array of paths to sourcemap files (relative to workspace root)
-* `rblxexplorer.port`: WebSocket server port (default: 9000)
-* `rblxexplorer.host`: WebSocket server host (default: localhost)
-* `rblxexplorer.autoStart`: Whether to start the server automatically (default: true)
+* `verde.sourcemapPaths`: Array of paths to sourcemap files (relative to workspace root)
+* `verde.port`: WebSocket server port (default: 9000)
+* `verde.host`: WebSocket server host (default: localhost)
+* `verde.autoStart`: Whether to start the server automatically (default: true)
 
 ## Usage
 

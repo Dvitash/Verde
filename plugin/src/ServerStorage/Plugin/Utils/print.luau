@@ -5,5 +5,5 @@ return function(...: any)
 		args[i] = tostring(arg)
 	end
 
-	print("[RblxExplorer] " .. table.concat(args, " "))
+	print("[Verde] " .. table.concat(args, " "))
 end
