@@ -82,9 +82,6 @@ async function activate(context) {
             const node = selection[0];
             propertiesPanel.show(node.id);
         }
-        else {
-            propertiesPanel.hide();
-        }
     });
     context.subscriptions.push(vscode.commands.registerCommand('verde.navigateToInstance', async (instanceId) => {
         const node = explorerProvider.getNodeById(instanceId);
