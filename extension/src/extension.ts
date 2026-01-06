@@ -4,6 +4,7 @@ import { VerdeBackend } from "./backend";
 import { PropertiesViewProvider } from "./propertiesViewProvider";
 import { ROBLOX_CLASS_NAMES } from "./robloxClasses";
 import { SourcemapParser } from "./sourcemapParser";
+import { isScriptClass } from "./utils";
 
 let backend: VerdeBackend | null = null;
 let sourcemapParser: SourcemapParser;
@@ -422,15 +423,19 @@ export async function activate(context: vscode.ExtensionContext) {
 				if (!result.success) {
 					vscode.window.showErrorMessage(`Failed to create instance: ${result.error}`);
 				} else {
-					// Wait for the snapshot to update with the new instance
 					await backend.waitForNextSnapshot();
 
-					// The result.data contains the ID of the newly created instance
 					if (result.data && typeof result.data === 'string') {
 						const newNodeId = result.data;
 						const newNode = explorerProvider.getNodeById(newNodeId);
 						if (newNode) {
 							await explorerView.reveal(newNode, { select: true, focus: true });
+
+							if (isScriptClass(newNode.className)) {
+								waitForScriptInSourcemap(newNode, 2000).catch(error => {
+									console.debug('Failed to wait for script in sourcemap:', error);
+								});
+							}
 						}
 					}
 				}
@@ -521,6 +526,31 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		return path;
+	}
+
+	async function waitForScriptInSourcemap(node: Node, timeoutMs: number = 2000): Promise<boolean> {
+		const startTime = Date.now();
+		const instancePath = getInstancePath(node, explorerProvider);
+
+		while (Date.now() - startTime < timeoutMs) {
+			await sourcemapParser.loadSourcemaps();
+			const fileUri = sourcemapParser.findFilePath(instancePath);
+
+			if (fileUri) {
+				try {
+					const document = await vscode.workspace.openTextDocument(fileUri);
+					await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+					return true;
+				} catch (error) {
+					console.debug('Failed to open script document:', error);
+					return false;
+				}
+			}
+
+			await new Promise(resolve => setTimeout(resolve, 100));
+		}
+
+		return false;
 	}
 
 	const config = vscode.workspace.getConfiguration("verde");

@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { VerdeBackend, Operation } from "./backend";
 import { InstanceSorter, SortableNode } from "./instanceSorter";
 import { DragAndDropController } from "./dragAndDropController";
+import { isScriptClass } from "./utils";
 
 export type Node = {
 	id: string;
@@ -110,7 +111,7 @@ export class RobloxExplorerProvider implements vscode.TreeDataProvider<Node> {
 
 		treeItem.iconPath = this.getIconForClassName(element.className);
 
-		if (this.isScriptClass(element.className)) {
+		if (isScriptClass(element.className)) {
 			treeItem.command = {
 				command: 'verde.handleScriptActivation',
 				arguments: [element],
@@ -151,9 +152,4 @@ export class RobloxExplorerProvider implements vscode.TreeDataProvider<Node> {
 			`${className}.png`
 		);
 	}
-
-	private isScriptClass(className: string): boolean {
-		return className === "Script" || className === "LocalScript" || className === "ModuleScript";
-	}
-
 }
