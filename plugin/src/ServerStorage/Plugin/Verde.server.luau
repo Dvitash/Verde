@@ -20,9 +20,9 @@ if RunService:IsRunning() then
 end
 
 local PLUGIN_NAME = "Verde"
-local ICON_DISCONNECTED = "rbxassetid://123083759878787"
-local ICON_CONNECTING = "rbxassetid://112607063142486"
-local ICON_CONNECTED = "rbxassetid://140416565070932"
+local ICON_DISCONNECTED = "rbxassetid://124960398837470"
+local ICON_CONNECTING = "rbxassetid://135366234307988"
+local ICON_CONNECTED = "rbxassetid://92148029390129"
 
 -- todo: in-studio settings
 local CONFIG = {
@@ -256,7 +256,6 @@ local function ensureClient(): boolean
 	})
 
 	newClient:on("connect", function()
-		print("Connecting...")
 		currentConnectionState = STATES.CONNECTING
 		setButtonState()
 	end)
@@ -283,7 +282,6 @@ local function ensureClient(): boolean
 			startAckLoop()
 
 			task.defer(sendSnapshot)
-			print("Connected!")
 		end
 	end)
 
