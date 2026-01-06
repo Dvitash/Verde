@@ -144,8 +144,6 @@ local function sendSnapshot()
 		return
 	end
 
-	print("snapshot sent")
-
 	assert(client:send(jsonString), "failed to send snapshot")
 end
 

@@ -3,7 +3,7 @@
   "publisher": "Dvitash",
   "displayName": "Verde",
   "description": "A VS Code extension for exploring and editing Roblox game instances",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -71,55 +71,68 @@
     "commands": [
       {
         "command": "verde.showOutput",
-        "title": "Verde: Show Output"
+        "title": "Show Output",
+        "category": "Verde"
       },
       {
         "command": "verde.renameInstance",
-        "title": "Verde: Rename Instance"
+        "title": "Rename Instance",
+        "category": "Verde"
       },
       {
         "command": "verde.duplicateInstance",
-        "title": "Verde: Duplicate Instance"
+        "title": "Duplicate Instance",
+        "category": "Verde"
       },
       {
         "command": "verde.deleteInstance",
-        "title": "Verde: Delete Instance"
+        "title": "Delete Instance",
+        "category": "Verde"
       },
       {
         "command": "verde.copyInstance",
-        "title": "Verde: Copy Instance"
+        "title": "Copy Instance",
+        "category": "Verde"
       },
       {
         "command": "verde.pasteInstance",
-        "title": "Verde: Paste Instance"
+        "title": "Paste Instance",
+        "category": "Verde"
       },
       {
         "command": "verde.addInstance",
-        "title": "Verde: Add Child..."
+        "title": "Add Child...",
+        "category": "Verde"
       },
       {
         "command": "verde.openScript",
-        "title": "Verde: Open Script"
+        "title": "Open Script",
+        "category": "Verde"
       },
       {
         "command": "verde.copyRobloxPath",
-        "title": "Verde: Copy Roblox Path"
+        "title": "Copy Roblox Path",
+        "category": "Verde"
       },
       {
         "command": "verde.copyFilePath",
-        "title": "Verde: Copy File Path"
+        "title": "Copy File Path",
+        "category": "Verde"
       },
       {
         "command": "verde.startServer",
-        "title": "Verde: Start Server"
+        "title": "Start Server",
+        "category": "Verde"
       },
       {
         "command": "verde.stopServer",
-        "title": "Verde: Stop Server"
+        "title": "Stop Server",
+        "category": "Verde"
       },
       {
         "command": "verde.togglePropertiesPanelMode",
-        "title": "Verde: Toggle Properties Panel Mode"
+        "title": "Toggle Properties Panel Mode",
+        "category": "Verde"
       }
     ],
     "keybindings": [
