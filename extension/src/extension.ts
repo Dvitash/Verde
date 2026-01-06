@@ -502,7 +502,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 				if (fileUri) {
 					const document = await vscode.workspace.openTextDocument(fileUri);
-					await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+					await vscode.window.showTextDocument(document, {
+						viewColumn: vscode.ViewColumn.One,
+						preview: false
+					});
 				} else {
 					vscode.window.showWarningMessage(`No sourcemap entry found for script: ${node.name}`);
 				}
@@ -530,16 +533,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	async function waitForScriptInSourcemap(node: Node, timeoutMs: number = 2000): Promise<boolean> {
 		const startTime = Date.now();
-		const instancePath = getInstancePath(node, explorerProvider);
 
 		while (Date.now() - startTime < timeoutMs) {
 			await sourcemapParser.loadSourcemaps();
+			const instancePath = getInstancePath(node, explorerProvider);
 			const fileUri = sourcemapParser.findFilePath(instancePath);
 
 			if (fileUri) {
 				try {
-					const document = await vscode.workspace.openTextDocument(fileUri);
-					await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+					await vscode.commands.executeCommand("verde.openScript", node);
 					return true;
 				} catch (error) {
 					console.debug('Failed to open script document:', error);
