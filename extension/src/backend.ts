@@ -59,6 +59,7 @@ export class VerdeBackend {
     private operationCallbacks: Map<string, (result: OperationResult) => void> = new Map();
     private lastAckTime: number = 0;
     private ackTimeout: NodeJS.Timeout | null = null;
+    private ackInterval: NodeJS.Timeout | null = null;
     private nextSnapshotPromise: Promise<Snapshot> | null = null;
     private nextSnapshotResolve: ((snapshot: Snapshot) => void) | null = null;
 
@@ -119,9 +120,8 @@ export class VerdeBackend {
                 this.log(`socket error: ${String(err)}`);
             });
 
-            this.send(socket, { type: "ack" });
             this.lastAckTime = Date.now();
-            this.resetAckTimeout();
+            this.startAckInterval();
 
             this.requestSnapshot();
         });
@@ -154,6 +154,11 @@ export class VerdeBackend {
         if (this.ackTimeout) {
             clearTimeout(this.ackTimeout);
             this.ackTimeout = null;
+        }
+
+        if (this.ackInterval) {
+            clearInterval(this.ackInterval);
+            this.ackInterval = null;
         }
 
         this.operationCallbacks.clear();
@@ -230,6 +235,7 @@ export class VerdeBackend {
 
         switch (message.type) {
             case "explorer_snapshot": {
+                this.lastAckTime = Date.now();
                 const payload = message.payload as Snapshot;
 
                 if (
@@ -259,6 +265,7 @@ export class VerdeBackend {
             }
 
             case "operation_result": {
+                this.lastAckTime = Date.now();
                 const operationResultMessage = message as { type: "operation_result"; operationId: string; result: OperationResult };
                 const callback = this.operationCallbacks.get(operationResultMessage.operationId);
 
@@ -272,14 +279,14 @@ export class VerdeBackend {
             }
 
             case "handshake": {
+                this.lastAckTime = Date.now();
                 this.send(socket, { type: "ack" });
                 return;
             }
 
             case "ack": {
                 this.lastAckTime = Date.now();
-                this.resetAckTimeout();
-                this.send(socket, { type: "ack" });
+                this.log(`received ack from plugin`);
                 return;
             }
 
@@ -299,19 +306,52 @@ export class VerdeBackend {
         socket.send(JSON.stringify(message));
     }
 
-    private resetAckTimeout(): void {
-        if (this.ackTimeout) {
-            clearTimeout(this.ackTimeout);
-            this.ackTimeout = null;
+    private startAckInterval(): void {
+        if (this.ackInterval) {
+            return;
         }
 
-        this.ackTimeout = setTimeout(() => {
-            this.log("ACK timeout - connection lost");
-            if (this.onConnectionLost) {
-                this.onConnectionLost();
+        this.ackInterval = setInterval(() => {
+            if (this.clients.size === 0) {
+                if (this.ackInterval) {
+                    clearInterval(this.ackInterval);
+                    this.ackInterval = null;
+                }
+                return;
             }
-        }, 1250);
+
+            const now = Date.now();
+            const timeSinceLastAck = now - this.lastAckTime;
+            if (timeSinceLastAck > 5000) {
+
+                const socketsToDisconnect: WebSocket[] = [];
+                for (const socket of this.clients) {
+                    socketsToDisconnect.push(socket);
+                }
+
+                for (const socket of socketsToDisconnect) {
+                    try {
+                        socket.close();
+                    } catch {
+                        // ignore
+                    }
+                    this.clients.delete(socket);
+                }
+
+                if (this.clients.size === 0 && this.onConnectionLost) {
+                    this.onConnectionLost();
+                }
+
+                this.updateStatusBar();
+                return;
+            }
+
+            for (const socket of this.clients) {
+                this.send(socket, { type: "ack" });
+            }
+        }, 1000);
     }
+
 
     private updateStatusBar(): void {
         const running = this.webSocketServer !== null;

@@ -1,5 +1,6 @@
 local InstanceMap = require(script.Parent.Parent.Shared.InstanceMap)
 local getProperties = require(script.Parent.get_properties)
+local print = require(script.Parent.Parent.Utils.print)
 
 return function(operation)
 	local nodeId = operation.nodeId
@@ -12,7 +13,8 @@ return function(operation)
 		return false
 	end
 
-	local success = pcall(function()
+	local errorMessage = nil
+	local success, result = pcall(function()
 		if typeof(propertyValue) == "table" and propertyValue.EnumName and propertyValue.EnumType then
 			local enumType = Enum[propertyValue.EnumType]
 			if enumType then
@@ -57,14 +59,62 @@ return function(operation)
 			and propertyValue.B ~= nil
 		then
 			instance[propertyName] = Color3.new(propertyValue.R, propertyValue.G, propertyValue.B)
+		elseif typeof(propertyValue) == "table" and propertyValue.Min ~= nil and propertyValue.Max ~= nil then
+			instance[propertyName] = NumberRange.new(propertyValue.Min, propertyValue.Max)
+		elseif typeof(propertyValue) == "table" and propertyValue.Keypoints ~= nil then
+			local keypoints = {}
+			local isColorSequence = false
+
+			for _, kp in propertyValue.Keypoints do
+				if
+					kp.Value
+					and typeof(kp.Value) == "table"
+					and kp.Value.R ~= nil
+					and kp.Value.G ~= nil
+					and kp.Value.B ~= nil
+				then
+					isColorSequence = true
+					local color = Color3.new(kp.Value.R, kp.Value.G, kp.Value.B)
+					table.insert(keypoints, ColorSequenceKeypoint.new(kp.Time or 0, color))
+				else
+					local value = kp.Value
+					if typeof(value) == "table" then
+						value = value.Value or value.v or 0
+					end
+					local time = kp.Time or 0
+					local keypoint = NumberSequenceKeypoint.new(time, value or 0)
+					table.insert(keypoints, keypoint)
+				end
+			end
+
+			if #keypoints > 0 then
+				table.sort(keypoints, function(a, b)
+					return a.Time < b.Time
+				end)
+
+				if isColorSequence then
+					instance[propertyName] = ColorSequence.new(keypoints)
+				else
+					instance[propertyName] = NumberSequence.new(keypoints)
+				end
+			else
+				error("No keypoints provided for sequence")
+			end
 		else
 			instance[propertyName] = propertyValue
 		end
 	end)
 
-	if success then
-		return getProperties({ nodeId = operation.nodeId })
+	if not success then
+		errorMessage = tostring(result)
+		print("set_property failed for", propertyName, ":", errorMessage)
+		return false, errorMessage
+	end
+
+	local propertiesResult = getProperties({ nodeId = operation.nodeId })
+	if propertiesResult then
+		return propertiesResult
 	else
-		return false
+		return false, "Failed to get updated properties"
 	end
 end

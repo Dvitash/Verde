@@ -99,6 +99,45 @@ return function(operation)
 				Name = propValue.Name,
 				Number = propValue.Number,
 			}
+		elseif typeof(propValue) == "NumberRange" then
+			propValue = {
+				Min = propValue.Min,
+				Max = propValue.Max,
+			}
+		elseif typeof(propValue) == "NumberSequence" then
+			local keypoints = {}
+			for _, keypoint in propValue.Keypoints do
+				table.insert(keypoints, {
+					Time = keypoint.Time,
+					Value = keypoint.Value,
+				})
+			end
+			propValue = {
+				Keypoints = keypoints,
+			}
+		elseif typeof(propValue) == "ColorSequence" then
+			local keypoints = {}
+			for _, keypoint in propValue.Keypoints do
+				local value = keypoint.Value
+				if typeof(value) == "Color3" then
+					table.insert(keypoints, {
+						Time = keypoint.Time,
+						Value = {
+							R = value.R,
+							G = value.G,
+							B = value.B,
+						},
+					})
+				else
+					table.insert(keypoints, {
+						Time = keypoint.Time,
+						Value = value,
+					})
+				end
+			end
+			propValue = {
+				Keypoints = keypoints,
+			}
 		end
 
 		local enumValues = nil

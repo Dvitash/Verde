@@ -16,11 +16,64 @@
         </div>
     </div>
 
+    <div id="curve-editor-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="curve-editor-title" class="modal-title">Edit NumberSequence</span>
+                <button class="modal-close" onclick="closeCurveEditor()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="curve-canvas-container">
+                    <canvas id="curve-canvas" width="500" height="250"></canvas>
+                </div>
+                <div id="curve-nodes-list" class="curve-nodes-list"></div>
+                <div class="curve-controls">
+                    <button onclick="addCurveNode()" class="curve-button">Add Node</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="applyCurveEditor()" class="curve-button primary">Apply</button>
+                <button onclick="closeCurveEditor()" class="curve-button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gradient-editor-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="gradient-editor-title" class="modal-title">Edit ColorSequence</span>
+                <button class="modal-close" onclick="closeGradientEditor()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="gradient-preview-container" class="gradient-preview-container">
+                    <div id="gradient-preview" class="gradient-preview"></div>
+                    <div id="gradient-stops" class="gradient-stops"></div>
+                </div>
+                <div id="gradient-stops-list" class="gradient-stops-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="applyGradientEditor()" class="curve-button primary">Apply</button>
+                <button onclick="closeGradientEditor()" class="curve-button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const vscode = acquireVsCodeApi();
 
         let allProperties = [];
         const collapsedCategories = new Set();
+        const expandedProperties = new Set();
+        let currentCurveProperty = null;
+        let currentCurveNodes = [];
+        let curveCanvas = null;
+        let curveCtx = null;
+        let draggingNodeIndex = -1;
+        let selectedNodeIndex = -1;
+        let currentGradientProperty = null;
+        let currentGradientStops = [];
+        let draggingGradientStopIndex = -1;
+        let selectedGradientStopIndex = -1;
 
         const container = document.getElementById("properties-container");
         [[scriptElements]]
@@ -28,7 +81,6 @@
         function updateProperties(message) {
             if (typeof message === 'object' && message.properties) {
                 allProperties = Array.isArray(message.properties) ? message.properties : [];
-                // Update title if node info is provided
                 if (message.nodeName && message.nodeClassName) {
                     const titleElement = document.getElementById('properties-title');
                     if (titleElement) {
@@ -36,7 +88,6 @@
                     }
                 }
             } else {
-                // Legacy support for old format
                 allProperties = Array.isArray(message) ? message : [];
             }
             render();
@@ -100,7 +151,8 @@
                 rows.className = "rows";
 
                 for (const prop of categoryProps) {
-                    rows.appendChild(createRow(prop));
+                    const rowGroup = createRowGroup(prop);
+                    rows.appendChild(rowGroup);
                 }
 
                 categoryRoot.appendChild(rows);
@@ -108,21 +160,174 @@
             }
         }
 
-        function createRow(prop) {
+        function createRowGroup(prop) {
+            const group = document.createElement("div");
+            group.className = "property-group";
+            group.dataset.propertyName = prop.name;
+
+            const isExpandable = isMultiValueProperty(prop.type);
+            const isExpanded = expandedProperties.has(prop.name);
+
+            if (isExpandable) {
+                const mainRow = createRow(prop, true, isExpanded);
+                group.appendChild(mainRow);
+
+                if (isExpanded) {
+                    const subRows = createSubRows(prop);
+                    group.appendChild(subRows);
+                }
+            } else {
+                const mainRow = createRow(prop, false, false);
+                group.appendChild(mainRow);
+            }
+
+            return group;
+        }
+
+        function isMultiValueProperty(type) {
+            return type === "Vector2" || type === "Vector3" || type === "UDim2" ||
+                type === "CFrame" || type === "NumberRange" || type === "NumberSequence" ||
+                type === "ColorSequence";
+        }
+
+        function createRow(prop, isExpandable, isExpanded) {
             const row = document.createElement("div");
             row.className = "property-row";
 
+            const nameCell = document.createElement("div");
+            nameCell.className = "property-name";
+
+            if (isExpandable) {
+                const expandButton = document.createElement("span");
+                expandButton.className = "expand-button" + (isExpanded ? " expanded" : "");
+                expandButton.textContent = isExpanded ? "▼" : "▶";
+                expandButton.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    togglePropertyExpansion(prop.name);
+                });
+                nameCell.appendChild(expandButton);
+            }
+
+            const name = document.createElement("span");
+            name.textContent = prop.name || "";
+            nameCell.appendChild(name);
+            row.appendChild(nameCell);
+
+            const value = document.createElement("div");
+            value.className = "property-value";
+            value.appendChild(createEditor(prop, isExpandable && !isExpanded));
+            row.appendChild(value);
+
+            return row;
+        }
+
+        function createSubRows(prop) {
+            const subRows = document.createElement("div");
+            subRows.className = "property-subrows";
+
+            switch (prop.type) {
+                case "Vector2": {
+                    if (prop.value && typeof prop.value === "object") {
+                        subRows.appendChild(createSubRow(prop, "X", prop.value.X ?? 0, (val) => ({ X: val, Y: prop.value.Y ?? 0 })));
+                        subRows.appendChild(createSubRow(prop, "Y", prop.value.Y ?? 0, (val) => ({ X: prop.value.X ?? 0, Y: val })));
+                    } else {
+                        subRows.appendChild(createSubRow(prop, "X", 0, (val) => ({ X: val, Y: 0 })));
+                        subRows.appendChild(createSubRow(prop, "Y", 0, (val) => ({ X: 0, Y: val })));
+                    }
+                    break;
+                }
+                case "Vector3": {
+                    if (prop.value && typeof prop.value === "object") {
+                        subRows.appendChild(createSubRow(prop, "X", prop.value.X ?? 0, (val) => ({ X: val, Y: prop.value.Y ?? 0, Z: prop.value.Z ?? 0 })));
+                        subRows.appendChild(createSubRow(prop, "Y", prop.value.Y ?? 0, (val) => ({ X: prop.value.X ?? 0, Y: val, Z: prop.value.Z ?? 0 })));
+                        subRows.appendChild(createSubRow(prop, "Z", prop.value.Z ?? 0, (val) => ({ X: prop.value.X ?? 0, Y: prop.value.Y ?? 0, Z: val })));
+                    } else {
+                        subRows.appendChild(createSubRow(prop, "X", 0, (val) => ({ X: val, Y: 0, Z: 0 })));
+                        subRows.appendChild(createSubRow(prop, "Y", 0, (val) => ({ X: 0, Y: val, Z: 0 })));
+                        subRows.appendChild(createSubRow(prop, "Z", 0, (val) => ({ X: 0, Y: 0, Z: val })));
+                    }
+                    break;
+                }
+                case "UDim2": {
+                    if (prop.value && prop.value.X && prop.value.Y) {
+                        subRows.appendChild(createSubRow(prop, "X.Scale", prop.value.X.Scale ?? 0, (val) => ({ X: { Scale: val, Offset: prop.value.X.Offset ?? 0 }, Y: prop.value.Y })));
+                        subRows.appendChild(createSubRow(prop, "X.Offset", prop.value.X.Offset ?? 0, (val) => ({ X: { Scale: prop.value.X.Scale ?? 0, Offset: val }, Y: prop.value.Y })));
+                        subRows.appendChild(createSubRow(prop, "Y.Scale", prop.value.Y.Scale ?? 0, (val) => ({ X: prop.value.X, Y: { Scale: val, Offset: prop.value.Y.Offset ?? 0 } })));
+                        subRows.appendChild(createSubRow(prop, "Y.Offset", prop.value.Y.Offset ?? 0, (val) => ({ X: prop.value.X, Y: { Scale: prop.value.Y.Scale ?? 0, Offset: val } })));
+                    } else {
+                        subRows.appendChild(createSubRow(prop, "X.Scale", 0, (val) => ({ X: { Scale: val, Offset: 0 }, Y: { Scale: 0, Offset: 0 } })));
+                        subRows.appendChild(createSubRow(prop, "X.Offset", 0, (val) => ({ X: { Scale: 0, Offset: val }, Y: { Scale: 0, Offset: 0 } })));
+                        subRows.appendChild(createSubRow(prop, "Y.Scale", 0, (val) => ({ X: { Scale: 0, Offset: 0 }, Y: { Scale: val, Offset: 0 } })));
+                        subRows.appendChild(createSubRow(prop, "Y.Offset", 0, (val) => ({ X: { Scale: 0, Offset: 0 }, Y: { Scale: 0, Offset: val } })));
+                    }
+                    break;
+                }
+                case "CFrame": {
+                    if (prop.value && typeof prop.value === "object" && prop.value.Position) {
+                        const pos = prop.value.Position;
+                        subRows.appendChild(createSubRow(prop, "Position.X", pos.X ?? 0, (val) => ({ Position: { X: val, Y: pos.Y ?? 0, Z: pos.Z ?? 0 }, Rotation: prop.value.Rotation || { X: 0, Y: 0, Z: 0 } })));
+                        subRows.appendChild(createSubRow(prop, "Position.Y", pos.Y ?? 0, (val) => ({ Position: { X: pos.X ?? 0, Y: val, Z: pos.Z ?? 0 }, Rotation: prop.value.Rotation || { X: 0, Y: 0, Z: 0 } })));
+                        subRows.appendChild(createSubRow(prop, "Position.Z", pos.Z ?? 0, (val) => ({ Position: { X: pos.X ?? 0, Y: pos.Y ?? 0, Z: val }, Rotation: prop.value.Rotation || { X: 0, Y: 0, Z: 0 } })));
+                    } else {
+                        subRows.appendChild(createSubRow(prop, "Position.X", 0, (val) => ({ Position: { X: val, Y: 0, Z: 0 }, Rotation: { X: 0, Y: 0, Z: 0 } })));
+                        subRows.appendChild(createSubRow(prop, "Position.Y", 0, (val) => ({ Position: { X: 0, Y: val, Z: 0 }, Rotation: { X: 0, Y: 0, Z: 0 } })));
+                        subRows.appendChild(createSubRow(prop, "Position.Z", 0, (val) => ({ Position: { X: 0, Y: 0, Z: val }, Rotation: { X: 0, Y: 0, Z: 0 } })));
+                    }
+                    break;
+                }
+                case "NumberRange": {
+                    if (prop.value && typeof prop.value === "object") {
+                        subRows.appendChild(createSubRow(prop, "Min", prop.value.Min ?? 0, (val) => ({ Min: val, Max: prop.value.Max ?? 0 })));
+                        subRows.appendChild(createSubRow(prop, "Max", prop.value.Max ?? 0, (val) => ({ Min: prop.value.Min ?? 0, Max: val })));
+                    } else {
+                        subRows.appendChild(createSubRow(prop, "Min", 0, (val) => ({ Min: val, Max: 0 })));
+                        subRows.appendChild(createSubRow(prop, "Max", 0, (val) => ({ Min: 0, Max: val })));
+                    }
+                    break;
+                }
+            }
+
+            return subRows;
+        }
+
+        function createSubRow(prop, subName, currentValue, updateFn) {
+            const row = document.createElement("div");
+            row.className = "property-row property-subrow";
+
             const name = document.createElement("div");
             name.className = "property-name";
-            name.textContent = prop.name || "";
+            name.textContent = subName;
             row.appendChild(name);
 
             const value = document.createElement("div");
             value.className = "property-value";
-            value.appendChild(createEditor(prop));
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "value-input";
+            input.value = currentValue ?? "0";
+
+            input.addEventListener("change", () => {
+                const raw = (input.value || "").trim();
+                const numericValue = parseFloat(raw);
+                if (!Number.isFinite(numericValue)) return;
+                const newValue = updateFn(numericValue);
+                postSetProperty(prop.name, newValue);
+            });
+
+            value.appendChild(input);
             row.appendChild(value);
 
             return row;
+        }
+
+        function togglePropertyExpansion(propertyName) {
+            if (expandedProperties.has(propertyName)) {
+                expandedProperties.delete(propertyName);
+            } else {
+                expandedProperties.add(propertyName);
+            }
+            render();
         }
 
         function postSetProperty(propertyName, propertyValue) {
@@ -133,7 +338,7 @@
             });
         }
 
-        function createEditor(prop) {
+        function createEditor(prop, showCompact) {
             if (prop && prop.isInstanceReference) {
                 const wrapper = document.createElement("div");
                 wrapper.className = "instance-link";
@@ -194,19 +399,6 @@
                     return checkbox;
                 }
 
-                case "string": {
-                    const input = document.createElement("input");
-                    input.type = "text";
-                    input.className = "value-input";
-                    input.value = prop.value ?? "";
-
-                    input.addEventListener("change", () => {
-                        postSetProperty(prop.name, input.value);
-                    });
-
-                    return input;
-                }
-
                 case "number":
                 case "int":
                 case "float":
@@ -226,47 +418,122 @@
                     return input;
                 }
 
-                case "Vector3": {
-                    const input = document.createElement("input");
-                    input.type = "text";
-                    input.className = "value-input";
-
-                    if (prop.value && typeof prop.value === "object") {
-                        input.value = `${prop.value.X.toFixed(3)}, ${prop.value.Y.toFixed(3)}, ${prop.value.Z.toFixed(3)}`;
-                    } else {
-                        input.value = "0, 0, 0";
+                case "Vector2": {
+                    const display = document.createElement("div");
+                    display.className = "value-display";
+                    if (showCompact) {
+                        if (prop.value && typeof prop.value === "object") {
+                            display.textContent = `${prop.value.X?.toFixed(3) ?? 0}, ${prop.value.Y?.toFixed(3) ?? 0}`;
+                        } else {
+                            display.textContent = "0, 0";
+                        }
                     }
+                    return display;
+                }
 
-                    input.addEventListener("change", () => {
-                        const parts = (input.value || "").split(",").map(s => parseFloat(s.trim()));
-                        if (parts.length !== 3 || parts.some(n => !Number.isFinite(n))) return;
-                        postSetProperty(prop.name, { X: parts[0], Y: parts[1], Z: parts[2] });
-                    });
-
-                    return input;
+                case "Vector3": {
+                    const display = document.createElement("div");
+                    display.className = "value-display";
+                    if (showCompact) {
+                        if (prop.value && typeof prop.value === "object") {
+                            display.textContent = `${prop.value.X?.toFixed(3) ?? 0}, ${prop.value.Y?.toFixed(3) ?? 0}, ${prop.value.Z?.toFixed(3) ?? 0}`;
+                        } else {
+                            display.textContent = "0, 0, 0";
+                        }
+                    }
+                    return display;
                 }
 
                 case "UDim2": {
-                    const input = document.createElement("input");
-                    input.type = "text";
-                    input.className = "value-input";
+                    const display = document.createElement("div");
+                    display.className = "value-display";
+                    if (showCompact) {
+                        if (prop.value && prop.value.X && prop.value.Y) {
+                            display.textContent = `${prop.value.X.Scale}, ${prop.value.X.Offset}, ${prop.value.Y.Scale}, ${prop.value.Y.Offset}`;
+                        } else {
+                            display.textContent = "0, 0, 0, 0";
+                        }
+                    }
+                    return display;
+                }
 
-                    if (prop.value && prop.value.X && prop.value.Y) {
-                        input.value = `${prop.value.X.Scale}, ${prop.value.X.Offset}, ${prop.value.Y.Scale}, ${prop.value.Y.Offset}`;
+                case "CFrame": {
+                    const display = document.createElement("div");
+                    display.className = "value-display";
+                    if (showCompact) {
+                        if (prop.value && typeof prop.value === "object" && prop.value.Position) {
+                            const pos = prop.value.Position;
+                            display.textContent = `${pos.X?.toFixed(3) ?? 0}, ${pos.Y?.toFixed(3) ?? 0}, ${pos.Z?.toFixed(3) ?? 0}`;
+                        } else {
+                            display.textContent = "0, 0, 0";
+                        }
+                    }
+                    return display;
+                }
+
+                case "NumberRange": {
+                    const display = document.createElement("div");
+                    display.className = "value-display";
+                    if (showCompact) {
+                        if (prop.value && typeof prop.value === "object") {
+                            display.textContent = `${prop.value.Min ?? 0} - ${prop.value.Max ?? 0}`;
+                        } else {
+                            display.textContent = "0 - 0";
+                        }
                     } else {
-                        input.value = "0, 0, 0, 0";
+                        display.textContent = "Click to expand";
+                    }
+                    return display;
+                }
+
+                case "NumberSequence": {
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "sequence-wrapper";
+
+                    const display = document.createElement("div");
+                    display.className = "value-display sequence-display";
+                    if (prop.value && Array.isArray(prop.value.Keypoints)) {
+                        const keypoints = prop.value.Keypoints;
+                        display.textContent = `${keypoints.length} keypoint${keypoints.length !== 1 ? 's' : ''}`;
+                    } else {
+                        display.textContent = "0 keypoints";
                     }
 
-                    input.addEventListener("change", () => {
-                        const parts = (input.value || "").split(",").map(s => parseFloat(s.trim()));
-                        if (parts.length !== 4 || parts.some(n => !Number.isFinite(n))) return;
-                        postSetProperty(prop.name, {
-                            X: { Scale: parts[0], Offset: parts[1] },
-                            Y: { Scale: parts[2], Offset: parts[3] },
-                        });
+                    const button = document.createElement("button");
+                    button.className = "sequence-button";
+                    button.textContent = "Edit";
+                    button.addEventListener("click", () => {
+                        openCurveEditor(prop);
                     });
 
-                    return input;
+                    wrapper.appendChild(display);
+                    wrapper.appendChild(button);
+                    return wrapper;
+                }
+
+                case "ColorSequence": {
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "sequence-wrapper";
+
+                    const display = document.createElement("div");
+                    display.className = "value-display sequence-display";
+                    if (prop.value && Array.isArray(prop.value.Keypoints)) {
+                        const keypoints = prop.value.Keypoints;
+                        display.textContent = `${keypoints.length} keypoint${keypoints.length !== 1 ? 's' : ''}`;
+                    } else {
+                        display.textContent = "0 keypoints";
+                    }
+
+                    const button = document.createElement("button");
+                    button.className = "sequence-button";
+                    button.textContent = "Edit";
+                    button.addEventListener("click", () => {
+                        openColorSequenceEditor(prop);
+                    });
+
+                    wrapper.appendChild(display);
+                    wrapper.appendChild(button);
+                    return wrapper;
                 }
 
                 case "Color3": {
@@ -295,26 +562,15 @@
                     return input;
                 }
 
-                case "CFrame": {
+                case "ContentId":
+                case "string": {
                     const input = document.createElement("input");
                     input.type = "text";
                     input.className = "value-input";
-                    input.placeholder = "Position (X, Y, Z)";
-
-                    if (prop.value && typeof prop.value === "object" && prop.value.Position) {
-                        const pos = prop.value.Position;
-                        if (pos.X !== undefined && pos.Y !== undefined && pos.Z !== undefined) {
-                            input.value = `${pos.X.toFixed(3)}, ${pos.Y.toFixed(3)}, ${pos.Z.toFixed(3)}`;
-                        }
-                    }
+                    input.value = prop.value ?? "";
 
                     input.addEventListener("change", () => {
-                        const parts = (input.value || "").split(",").map(s => parseFloat(s.trim()));
-                        if (parts.length !== 3 || parts.some(n => !Number.isFinite(n))) return;
-                        postSetProperty(prop.name, {
-                            Position: { X: parts[0], Y: parts[1], Z: parts[2] },
-                            Rotation: { X: 0, Y: 0, Z: 0 } // Default identity rotation
-                        });
+                        postSetProperty(prop.name, input.value);
                     });
 
                     return input;
@@ -338,6 +594,575 @@
                     return input;
                 }
             }
+        }
+
+        function openCurveEditor(prop) {
+            currentCurveProperty = prop;
+            const modal = document.getElementById("curve-editor-modal");
+            const title = document.getElementById("curve-editor-title");
+            title.textContent = `Edit ${prop.name} (NumberSequence)`;
+
+            if (prop.value && Array.isArray(prop.value.Keypoints) && prop.value.Keypoints.length > 0) {
+                currentCurveNodes = prop.value.Keypoints.map(kp => ({
+                    t: kp.Time ?? 0,
+                    v: kp.Value ?? 0
+                })).sort((a, b) => a.t - b.t);
+
+                if (currentCurveNodes[0].t !== 0) {
+                    currentCurveNodes.unshift({ t: 0, v: currentCurveNodes[0].v });
+                }
+                const lastIdx = currentCurveNodes.length - 1;
+                if (currentCurveNodes[lastIdx].t !== 1) {
+                    currentCurveNodes.push({ t: 1, v: currentCurveNodes[lastIdx].v });
+                }
+            } else {
+                currentCurveNodes = [{ t: 0, v: 0 }, { t: 1, v: 0 }];
+            }
+
+            curveCanvas = document.getElementById("curve-canvas");
+            curveCtx = curveCanvas.getContext("2d");
+            selectedNodeIndex = -1;
+            draggingNodeIndex = -1;
+
+            setupCurveCanvasListeners();
+            updateCurveEditor();
+            modal.style.display = "flex";
+        }
+
+        function openColorSequenceEditor(prop) {
+            try {
+                currentGradientProperty = prop;
+                const modal = document.getElementById("gradient-editor-modal");
+                if (!modal) {
+                    console.error("Gradient editor modal not found");
+                    return;
+                }
+                const title = document.getElementById("gradient-editor-title");
+                if (title) {
+                    title.textContent = `Edit ${prop.name} (ColorSequence)`;
+                }
+
+                if (prop.value && Array.isArray(prop.value.Keypoints)) {
+                    currentGradientStops = prop.value.Keypoints.map(kp => {
+                        let color = { r: 0, g: 0, b: 0 };
+                        if (kp.Value) {
+                            if (typeof kp.Value === "object" && kp.Value.R !== undefined) {
+                                color = {
+                                    r: Math.round(kp.Value.R * 255),
+                                    g: Math.round(kp.Value.G * 255),
+                                    b: Math.round(kp.Value.B * 255)
+                                };
+                            }
+                        }
+                        return {
+                            time: kp.Time ?? 0,
+                            color: color
+                        };
+                    }).sort((a, b) => a.time - b.time);
+                } else {
+                    currentGradientStops = [
+                        { time: 0, color: { r: 0, g: 0, b: 0 } },
+                        { time: 1, color: { r: 255, g: 255, b: 255 } }
+                    ];
+                }
+
+                selectedGradientStopIndex = -1;
+                draggingGradientStopIndex = -1;
+
+                updateGradientEditor();
+                modal.style.display = "flex";
+            } catch (error) {
+                console.error("Error opening color sequence editor:", error);
+            }
+        }
+
+        function updateGradientEditor() {
+            const preview = document.getElementById("gradient-preview");
+            const stopsContainer = document.getElementById("gradient-stops");
+            const stopsList = document.getElementById("gradient-stops-list");
+
+            if (!preview || !stopsContainer || !stopsList) return;
+
+            const sortedStops = [...currentGradientStops].sort((a, b) => a.time - b.time);
+
+            let gradientStops = sortedStops.map(stop => {
+                const percent = stop.time * 100;
+                return `${rgbToHex(stop.color)} ${percent}%`;
+            }).join(", ");
+
+            preview.style.background = `linear-gradient(to right, ${gradientStops})`;
+
+            stopsContainer.innerHTML = "";
+            for (let i = 0; i < sortedStops.length; i++) {
+                const stop = sortedStops[i];
+                const idx = currentGradientStops.indexOf(stop);
+                const stopElement = document.createElement("div");
+                stopElement.className = "gradient-stop-handle" + (selectedGradientStopIndex === idx ? " selected" : "");
+                stopElement.style.left = `${stop.time * 100}%`;
+                stopElement.dataset.index = idx.toString();
+
+                stopElement.addEventListener("mousedown", (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    draggingGradientStopIndex = idx;
+                    selectedGradientStopIndex = idx;
+                    updateGradientEditor();
+                });
+
+                stopsContainer.appendChild(stopElement);
+            }
+
+            stopsList.innerHTML = "";
+            for (let i = 0; i < sortedStops.length; i++) {
+                const stop = sortedStops[i];
+                const idx = currentGradientStops.indexOf(stop);
+                const item = document.createElement("div");
+                item.className = "gradient-stop-item" + (selectedGradientStopIndex === idx ? " selected" : "");
+
+                const timeInput = document.createElement("input");
+                timeInput.type = "number";
+                timeInput.className = "curve-node-input";
+                timeInput.min = "0";
+                timeInput.max = "1";
+                timeInput.step = "0.01";
+                timeInput.value = stop.time.toFixed(2);
+                timeInput.addEventListener("change", () => {
+                    const val = parseFloat(timeInput.value);
+                    if (!isNaN(val)) {
+                        stop.time = Math.max(0, Math.min(1, val));
+                        updateGradientEditor();
+                    }
+                });
+
+                const colorInput = document.createElement("input");
+                colorInput.type = "color";
+                colorInput.className = "gradient-color-input";
+                colorInput.value = rgbToHex(stop.color);
+                colorInput.addEventListener("change", () => {
+                    const hex = colorInput.value;
+                    stop.color = hexToRgb(hex);
+                    updateGradientEditor();
+                });
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.className = "curve-node-delete";
+                deleteBtn.textContent = "×";
+                deleteBtn.addEventListener("click", () => {
+                    if (currentGradientStops.length > 2) {
+                        currentGradientStops.splice(idx, 1);
+                        selectedGradientStopIndex = -1;
+                        updateGradientEditor();
+                    }
+                });
+
+                item.appendChild(document.createTextNode("Time: "));
+                item.appendChild(timeInput);
+                item.appendChild(document.createTextNode(" Color: "));
+                item.appendChild(colorInput);
+                if (currentGradientStops.length > 2) {
+                    item.appendChild(deleteBtn);
+                }
+
+                item.addEventListener("click", (e) => {
+                    if (e.target !== deleteBtn && e.target !== timeInput && e.target !== colorInput) {
+                        selectedGradientStopIndex = idx;
+                        updateGradientEditor();
+                    }
+                });
+
+                stopsList.appendChild(item);
+            }
+        }
+
+        function rgbToHex(rgb) {
+            return "#" + [rgb.r, rgb.g, rgb.b].map(x => {
+                const hex = Math.round(x).toString(16);
+                return hex.length === 1 ? "0" + hex : hex;
+            }).join("");
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+
+        function applyGradientEditor() {
+            if (!currentGradientProperty) return;
+
+            const keypoints = currentGradientStops.map(stop => ({
+                Time: stop.time,
+                Value: {
+                    R: stop.color.r / 255,
+                    G: stop.color.g / 255,
+                    B: stop.color.b / 255
+                }
+            }));
+
+            postSetProperty(currentGradientProperty.name, { Keypoints: keypoints });
+            closeGradientEditor();
+        }
+
+        function closeGradientEditor() {
+            const modal = document.getElementById("gradient-editor-modal");
+            if (modal) {
+                modal.style.display = "none";
+            }
+            currentGradientProperty = null;
+            currentGradientStops = [];
+            selectedGradientStopIndex = -1;
+            draggingGradientStopIndex = -1;
+        }
+
+        function updateCurveEditor() {
+            if (!curveCanvas || !curveCtx) return;
+
+            const width = curveCanvas.width;
+            const height = curveCanvas.height;
+            const padding = 30;
+
+            curveCtx.clearRect(0, 0, width, height);
+            curveCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--vscode-editor-background') || '#1e1e1e';
+            curveCtx.fillRect(0, 0, width, height);
+
+            const drawWidth = width - padding * 2;
+            const drawHeight = height - padding * 2;
+
+            curveCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--vscode-panel-border') || '#3e3e3e';
+            curveCtx.lineWidth = 1;
+
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (drawWidth / 10) * i;
+                curveCtx.beginPath();
+                curveCtx.moveTo(x, padding);
+                curveCtx.lineTo(x, height - padding);
+                curveCtx.stroke();
+
+                const y = padding + (drawHeight / 10) * i;
+                curveCtx.beginPath();
+                curveCtx.moveTo(padding, y);
+                curveCtx.lineTo(width - padding, y);
+                curveCtx.stroke();
+            }
+
+            if (currentCurveNodes.length > 0) {
+                const sortedIndices = currentCurveNodes.map((_, i) => i).sort((a, b) => currentCurveNodes[a].t - currentCurveNodes[b].t);
+
+                curveCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--vscode-textLink-foreground') || '#4fc3f7';
+                curveCtx.lineWidth = 2;
+                curveCtx.beginPath();
+
+                for (let i = 0; i < sortedIndices.length; i++) {
+                    const idx = sortedIndices[i];
+                    const node = currentCurveNodes[idx];
+                    const x = padding + node.t * drawWidth;
+                    const y = height - padding - node.v * drawHeight;
+
+                    if (i === 0) {
+                        curveCtx.moveTo(x, y);
+                    } else {
+                        curveCtx.lineTo(x, y);
+                    }
+                }
+
+                curveCtx.stroke();
+
+                for (let i = 0; i < sortedIndices.length; i++) {
+                    const idx = sortedIndices[i];
+                    const node = currentCurveNodes[idx];
+                    const x = padding + node.t * drawWidth;
+                    const y = height - padding - node.v * drawHeight;
+
+                    const isSelected = selectedNodeIndex === idx;
+                    const nodeRadius = 7;
+
+                    curveCtx.fillStyle = isSelected ? '#ff6b6b' : '#4fc3f7';
+                    curveCtx.beginPath();
+                    curveCtx.arc(x, y, nodeRadius, 0, Math.PI * 2);
+                    curveCtx.fill();
+
+                    if (isSelected) {
+                        curveCtx.strokeStyle = '#ff6b6b';
+                        curveCtx.lineWidth = 2;
+                        curveCtx.stroke();
+                    }
+                }
+            }
+
+            updateCurveNodesList();
+        }
+
+        function updateCurveNodesList() {
+            const list = document.getElementById("curve-nodes-list");
+            list.innerHTML = "";
+
+            const sortedIndices = currentCurveNodes.map((_, i) => i).sort((a, b) => currentCurveNodes[a].t - currentCurveNodes[b].t);
+
+            for (const idx of sortedIndices) {
+                const node = currentCurveNodes[idx];
+                const item = document.createElement("div");
+                item.className = "curve-node-item" + (selectedNodeIndex === idx ? " selected" : "");
+
+                const sortedIndices = currentCurveNodes.map((_, i) => i).sort((a, b) => currentCurveNodes[a].t - currentCurveNodes[b].t);
+                const isFirst = sortedIndices[0] === idx;
+                const isLast = sortedIndices[sortedIndices.length - 1] === idx;
+
+                const tInput = document.createElement("input");
+                tInput.type = "number";
+                tInput.className = "curve-node-input";
+                tInput.min = "0";
+                tInput.max = "1";
+                tInput.step = "0.01";
+                tInput.value = node.t.toFixed(2);
+                tInput.disabled = isFirst || isLast;
+                if (isFirst || isLast) {
+                    tInput.title = isFirst ? "First node must stay at t=0" : "Last node must stay at t=1";
+                }
+                tInput.addEventListener("change", () => {
+                    if (isFirst || isLast) return;
+                    const val = parseFloat(tInput.value);
+                    if (!isNaN(val)) {
+                        node.t = Math.max(0, Math.min(1, val));
+                        updateCurveEditor();
+                    }
+                });
+
+                const vInput = document.createElement("input");
+                vInput.type = "number";
+                vInput.className = "curve-node-input";
+                vInput.min = "0";
+                vInput.max = "1";
+                vInput.step = "0.01";
+                vInput.value = node.v.toFixed(2);
+                vInput.addEventListener("change", () => {
+                    const val = parseFloat(vInput.value);
+                    if (!isNaN(val)) {
+                        node.v = Math.max(0, Math.min(1, val));
+                        updateCurveEditor();
+                    }
+                });
+
+                const sortedIndicesForDelete = currentCurveNodes.map((_, i) => i).sort((a, b) => currentCurveNodes[a].t - currentCurveNodes[b].t);
+                const isFirstForDelete = sortedIndicesForDelete[0] === idx;
+                const isLastForDelete = sortedIndicesForDelete[sortedIndicesForDelete.length - 1] === idx;
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.className = "curve-node-delete";
+                deleteBtn.textContent = "×";
+                deleteBtn.disabled = isFirstForDelete || isLastForDelete;
+                if (isFirstForDelete || isLastForDelete) {
+                    deleteBtn.title = "Cannot delete first or last node";
+                }
+                deleteBtn.addEventListener("click", () => {
+                    if (currentCurveNodes.length > 2 && !isFirstForDelete && !isLastForDelete) {
+                        currentCurveNodes.splice(idx, 1);
+                        selectedNodeIndex = -1;
+                        updateCurveEditor();
+                    }
+                });
+
+                item.appendChild(document.createTextNode("T: "));
+                item.appendChild(tInput);
+                item.appendChild(document.createTextNode(" V: "));
+                item.appendChild(vInput);
+                item.appendChild(deleteBtn);
+
+                item.addEventListener("click", (e) => {
+                    if (e.target !== deleteBtn && e.target !== tInput && e.target !== vInput) {
+                        selectedNodeIndex = idx;
+                        updateCurveEditor();
+                    }
+                });
+
+                list.appendChild(item);
+            }
+        }
+
+        function addCurveNode() {
+            currentCurveNodes.push({ t: 0.5, v: 0.5 });
+            selectedNodeIndex = currentCurveNodes.length - 1;
+            updateCurveEditor();
+        }
+
+        function applyCurveEditor() {
+            if (!currentCurveProperty) return;
+
+            const sortedNodes = [...currentCurveNodes].sort((a, b) => a.t - b.t);
+
+            if (sortedNodes.length === 0) {
+                sortedNodes.push({ t: 0, v: 0 }, { t: 1, v: 0 });
+            } else {
+                if (sortedNodes[0].t !== 0) {
+                    sortedNodes.unshift({ t: 0, v: sortedNodes[0].v });
+                }
+                const lastIdx = sortedNodes.length - 1;
+                if (sortedNodes[lastIdx].t !== 1) {
+                    sortedNodes.push({ t: 1, v: sortedNodes[lastIdx].v });
+                }
+            }
+
+            const keypoints = sortedNodes.map(node => ({
+                Time: node.t,
+                Value: node.v
+            }));
+
+            postSetProperty(currentCurveProperty.name, { Keypoints: keypoints });
+            closeCurveEditor();
+        }
+
+        function closeCurveEditor() {
+            const modal = document.getElementById("curve-editor-modal");
+            modal.style.display = "none";
+            currentCurveProperty = null;
+            currentCurveNodes = [];
+            selectedNodeIndex = -1;
+            draggingNodeIndex = -1;
+        }
+
+        function setupCurveCanvasListeners() {
+            curveCanvas = document.getElementById("curve-canvas");
+            if (!curveCanvas) return;
+
+            curveCanvas.addEventListener("mousedown", (e) => {
+                if (!curveCanvas || !curveCtx) return;
+
+                const rect = curveCanvas.getBoundingClientRect();
+                const scaleX = curveCanvas.width / rect.width;
+                const scaleY = curveCanvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                const padding = 30;
+                const drawWidth = curveCanvas.width - padding * 2;
+                const drawHeight = curveCanvas.height - padding * 2;
+
+                let closestIdx = -1;
+                let closestDist = Infinity;
+
+                const sortedIndices = currentCurveNodes.map((_, i) => i).sort((a, b) => currentCurveNodes[a].t - currentCurveNodes[b].t);
+
+                for (let i = 0; i < currentCurveNodes.length; i++) {
+                    const node = currentCurveNodes[i];
+                    const nodeX = padding + node.t * drawWidth;
+                    const nodeY = curveCanvas.height - padding - node.v * drawHeight;
+                    const dist = Math.sqrt(Math.pow(x - nodeX, 2) + Math.pow(y - nodeY, 2));
+
+                    const hitRadius = 14;
+
+                    if (dist < hitRadius && dist < closestDist) {
+                        closestDist = dist;
+                        closestIdx = i;
+                    }
+                }
+
+                if (closestIdx >= 0) {
+                    draggingNodeIndex = closestIdx;
+                    selectedNodeIndex = closestIdx;
+                    updateCurveEditor();
+                } else {
+                    const t = Math.max(0, Math.min(1, (x - padding) / drawWidth));
+                    const v = Math.max(0, Math.min(1, (curveCanvas.height - padding - y) / drawHeight));
+                    currentCurveNodes.push({ t, v });
+                    selectedNodeIndex = currentCurveNodes.length - 1;
+                    updateCurveEditor();
+                }
+            });
+
+            curveCanvas.addEventListener("mousemove", (e) => {
+                if (draggingNodeIndex >= 0 && draggingNodeIndex < currentCurveNodes.length && curveCanvas) {
+                    const rect = curveCanvas.getBoundingClientRect();
+                    const scaleX = curveCanvas.width / rect.width;
+                    const scaleY = curveCanvas.height / rect.height;
+                    const x = (e.clientX - rect.left) * scaleX;
+                    const y = (e.clientY - rect.top) * scaleY;
+                    const padding = 30;
+                    const drawWidth = curveCanvas.width - padding * 2;
+                    const drawHeight = curveCanvas.height - padding * 2;
+
+                    const v = Math.max(0, Math.min(1, (curveCanvas.height - padding - y) / drawHeight));
+                    currentCurveNodes[draggingNodeIndex].v = v;
+
+                    const sortedIndices = currentCurveNodes.map((_, i) => i).sort((a, b) => currentCurveNodes[a].t - currentCurveNodes[b].t);
+                    const isFirst = sortedIndices[0] === draggingNodeIndex;
+                    const isLast = sortedIndices[sortedIndices.length - 1] === draggingNodeIndex;
+
+                    if (!isFirst && !isLast) {
+                        const t = Math.max(0, Math.min(1, (x - padding) / drawWidth));
+                        currentCurveNodes[draggingNodeIndex].t = t;
+                    } else {
+                        if (isFirst) {
+                            currentCurveNodes[draggingNodeIndex].t = 0;
+                        } else if (isLast) {
+                            currentCurveNodes[draggingNodeIndex].t = 1;
+                        }
+                    }
+
+                    updateCurveEditor();
+                }
+            });
+
+            curveCanvas.addEventListener("mouseup", () => {
+                draggingNodeIndex = -1;
+            });
+
+            curveCanvas.addEventListener("mouseleave", () => {
+                draggingNodeIndex = -1;
+            });
+        }
+
+        document.getElementById("curve-editor-modal")?.addEventListener("click", (e) => {
+            if (e.target.id === "curve-editor-modal") {
+                closeCurveEditor();
+            }
+        });
+
+        document.getElementById("gradient-editor-modal")?.addEventListener("click", (e) => {
+            if (e.target.id === "gradient-editor-modal") {
+                closeGradientEditor();
+            }
+        });
+
+        const gradientPreviewContainer = document.getElementById("gradient-preview-container");
+        if (gradientPreviewContainer) {
+            const preview = document.getElementById("gradient-preview");
+
+            if (preview) {
+                preview.addEventListener("mousedown", (e) => {
+                    if (draggingGradientStopIndex >= 0) return;
+
+                    const rect = preview.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const time = Math.max(0, Math.min(1, x / rect.width));
+
+                    const newStop = {
+                        time: time,
+                        color: { r: 128, g: 128, b: 128 }
+                    };
+                    currentGradientStops.push(newStop);
+                    selectedGradientStopIndex = currentGradientStops.length - 1;
+                    updateGradientEditor();
+                });
+            }
+
+            document.addEventListener("mousemove", (e) => {
+                if (draggingGradientStopIndex >= 0 && draggingGradientStopIndex < currentGradientStops.length) {
+                    const preview = document.getElementById("gradient-preview");
+                    if (!preview) return;
+
+                    const rect = preview.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const time = Math.max(0, Math.min(1, x / rect.width));
+
+                    currentGradientStops[draggingGradientStopIndex].time = time;
+                    updateGradientEditor();
+                }
+            });
+
+            document.addEventListener("mouseup", () => {
+                draggingGradientStopIndex = -1;
+            });
         }
 
         window.addEventListener("message", (event) => {
