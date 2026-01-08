@@ -3,3 +3,5 @@ out/
 *.vsix
 
 sourcemap.json
+
+*.code-workspace
