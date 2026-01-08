@@ -62,6 +62,8 @@
         const vscode = acquireVsCodeApi();
 
         let allProperties = [];
+        let allTags = [];
+        let allAttributes = [];
         const collapsedCategories = new Set();
         const expandedProperties = new Set();
         let currentCurveProperty = null;
@@ -74,13 +76,26 @@
         let currentGradientStops = [];
         let draggingGradientStopIndex = -1;
         let selectedGradientStopIndex = -1;
+        let showTagInput = false;
+        let showAttributeModal = false;
+        let currentContextMenu = null;
+        let renamingAttribute = null;
 
         const container = document.getElementById("properties-container");
         [[scriptElements]]
 
         function updateProperties(message) {
-            if (typeof message === 'object' && message.properties) {
-                allProperties = Array.isArray(message.properties) ? message.properties : [];
+            if (typeof message === 'object') {
+                if (message.properties && message.properties.properties) {
+                    allProperties = Array.isArray(message.properties.properties) ? message.properties.properties : [];
+                    allTags = Array.isArray(message.properties.tags) ? message.properties.tags : [];
+                    allAttributes = Array.isArray(message.properties.attributes) ? message.properties.attributes : [];
+                } else if (message.properties) {
+                    allProperties = Array.isArray(message.properties) ? message.properties : [];
+                    allTags = [];
+                    allAttributes = [];
+                }
+
                 if (message.nodeName && message.nodeClassName) {
                     const titleElement = document.getElementById('properties-title');
                     if (titleElement) {
@@ -89,6 +104,8 @@
                 }
             } else {
                 allProperties = Array.isArray(message) ? message : [];
+                allTags = [];
+                allAttributes = [];
             }
             render();
         }
@@ -111,10 +128,10 @@
             container.innerHTML = "";
 
             const filtered = allProperties.filter(matchesFilter);
-            if (filtered.length === 0) {
+            if (filtered.length === 0 && allTags.length === 0 && allAttributes.length === 0) {
                 const empty = document.createElement("div");
                 empty.className = "empty";
-                empty.textContent = allProperties.length ? "No matching properties." : "No properties available.";
+                empty.textContent = "No properties, tags, or attributes available.";
                 container.appendChild(empty);
                 return;
             }
@@ -136,6 +153,7 @@
                 header.appendChild(caret);
 
                 const title = document.createElement("div");
+                title.className = "category-header-title";
                 title.textContent = categoryName;
                 header.appendChild(title);
 
@@ -158,6 +176,12 @@
                 categoryRoot.appendChild(rows);
                 container.appendChild(categoryRoot);
             }
+
+            const tagsCategory = createTagsSection();
+            container.appendChild(tagsCategory);
+
+            const attributesCategory = createAttributesSection();
+            container.appendChild(attributesCategory);
         }
 
         function createRowGroup(prop) {
@@ -1163,6 +1187,660 @@
             document.addEventListener("mouseup", () => {
                 draggingGradientStopIndex = -1;
             });
+        }
+
+        function createTagsSection() {
+            const categoryRoot = document.createElement("div");
+            categoryRoot.className = "category" + (collapsedCategories.has("Tags") ? " collapsed" : "");
+
+            const header = document.createElement("div");
+            header.className = "category-header";
+
+            const caret = document.createElement("div");
+            caret.className = "caret";
+            header.appendChild(caret);
+
+            const title = document.createElement("div");
+            title.className = "category-header-title";
+            title.textContent = "Tags";
+            header.appendChild(title);
+
+            const addButton = document.createElement("button");
+            addButton.className = "add-button";
+            addButton.textContent = "+";
+            addButton.title = "Add Tag";
+            addButton.addEventListener("click", (e) => {
+                e.stopPropagation();
+                showTagInput = !showTagInput;
+                render();
+            });
+            header.appendChild(addButton);
+
+            header.addEventListener("click", (e) => {
+                if (e.target !== addButton) {
+                    if (collapsedCategories.has("Tags")) collapsedCategories.delete("Tags");
+                    else collapsedCategories.add("Tags");
+                    render();
+                }
+            });
+
+            categoryRoot.appendChild(header);
+
+            const rows = document.createElement("div");
+            rows.className = "rows";
+
+            if (showTagInput) {
+                const inputWrapper = document.createElement("div");
+                inputWrapper.className = "tag-input-wrapper";
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "tag-input";
+                input.placeholder = "Enter tag name...";
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        const tagName = input.value.trim();
+                        if (tagName) {
+                            vscode.postMessage({
+                                type: "addTag",
+                                tagName
+                            });
+                            showTagInput = false;
+                        }
+                    } else if (e.key === "Escape") {
+                        showTagInput = false;
+                        render();
+                    }
+                });
+                inputWrapper.appendChild(input);
+                rows.appendChild(inputWrapper);
+                setTimeout(() => input.focus(), 10);
+            }
+
+            const tagsContainer = document.createElement("div");
+            tagsContainer.className = "tags-container";
+
+            if (allTags.length === 0 && !showTagInput) {
+                const empty = document.createElement("div");
+                empty.className = "empty";
+                empty.textContent = "No tags";
+                empty.style.padding = "4px 0";
+                tagsContainer.appendChild(empty);
+            } else {
+                for (const tag of allTags) {
+                    const tagItem = document.createElement("div");
+                    tagItem.className = "tag-item";
+
+                    const tagText = document.createElement("span");
+                    tagText.textContent = tag;
+                    tagItem.appendChild(tagText);
+
+                    const removeBtn = document.createElement("span");
+                    removeBtn.className = "tag-item-remove";
+                    removeBtn.textContent = "×";
+                    removeBtn.addEventListener("click", () => {
+                        vscode.postMessage({
+                            type: "removeTag",
+                            tagName: tag
+                        });
+                    });
+                    tagItem.appendChild(removeBtn);
+
+                    tagsContainer.appendChild(tagItem);
+                }
+            }
+
+            rows.appendChild(tagsContainer);
+            categoryRoot.appendChild(rows);
+
+            return categoryRoot;
+        }
+
+        function createAttributesSection() {
+            const categoryRoot = document.createElement("div");
+            categoryRoot.className = "category" + (collapsedCategories.has("Attributes") ? " collapsed" : "");
+
+            const header = document.createElement("div");
+            header.className = "category-header";
+
+            const caret = document.createElement("div");
+            caret.className = "caret";
+            header.appendChild(caret);
+
+            const title = document.createElement("div");
+            title.className = "category-header-title";
+            title.textContent = "Attributes";
+            header.appendChild(title);
+
+            const addButton = document.createElement("button");
+            addButton.className = "add-button";
+            addButton.textContent = "+";
+            addButton.title = "Add Attribute";
+            addButton.addEventListener("click", (e) => {
+                e.stopPropagation();
+                openAttributeModal();
+            });
+            header.appendChild(addButton);
+
+            header.addEventListener("click", (e) => {
+                if (e.target !== addButton) {
+                    if (collapsedCategories.has("Attributes")) collapsedCategories.delete("Attributes");
+                    else collapsedCategories.add("Attributes");
+                    render();
+                }
+            });
+
+            categoryRoot.appendChild(header);
+
+            const rows = document.createElement("div");
+            rows.className = "rows";
+
+            if (allAttributes.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "empty";
+                empty.textContent = "No attributes";
+                rows.appendChild(empty);
+            } else {
+                for (const attr of allAttributes) {
+                    const row = createAttributeRow(attr);
+                    rows.appendChild(row);
+                }
+            }
+
+            categoryRoot.appendChild(rows);
+
+            return categoryRoot;
+        }
+
+        function createAttributeRow(attr) {
+            const row = document.createElement("div");
+            row.className = "attribute-row";
+
+            const nameCell = document.createElement("div");
+            nameCell.className = "attribute-name";
+
+            if (renamingAttribute === attr.name) {
+                const nameInput = document.createElement("input");
+                nameInput.type = "text";
+                nameInput.className = "attribute-name-input";
+                nameInput.value = attr.name;
+                nameInput.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        const newName = nameInput.value.trim();
+                        if (newName && newName !== attr.name) {
+                            vscode.postMessage({
+                                type: "renameAttribute",
+                                oldName: attr.name,
+                                newName: newName
+                            });
+                        }
+                        renamingAttribute = null;
+                        render();
+                    } else if (e.key === "Escape") {
+                        renamingAttribute = null;
+                        render();
+                    }
+                });
+                nameInput.addEventListener("blur", () => {
+                    renamingAttribute = null;
+                    render();
+                });
+                nameCell.appendChild(nameInput);
+                setTimeout(() => {
+                    nameInput.focus();
+                    nameInput.select();
+                }, 10);
+            } else {
+                const nameText = document.createElement("span");
+                nameText.className = "attribute-name-text";
+                nameText.textContent = attr.name;
+                nameCell.appendChild(nameText);
+            }
+
+            row.appendChild(nameCell);
+
+            const valueCell = document.createElement("div");
+            valueCell.className = "attribute-value";
+            valueCell.appendChild(createAttributeEditor(attr));
+            row.appendChild(valueCell);
+
+            const gearCell = document.createElement("div");
+            gearCell.className = "attribute-gear";
+            gearCell.textContent = "⚙";
+            gearCell.title = "Options";
+            gearCell.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showAttributeContextMenu(e, attr.name, gearCell);
+            });
+            gearCell.addEventListener("mousedown", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            row.appendChild(gearCell);
+
+            return row;
+        }
+
+        function showAttributeContextMenu(event, attributeName, gearElement) {
+            closeAttributeContextMenu();
+
+            const menu = document.createElement("div");
+            menu.className = "attribute-context-menu";
+
+            const renameItem = document.createElement("div");
+            renameItem.className = "attribute-context-item";
+            renameItem.textContent = "Delete";
+            renameItem.addEventListener("click", (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                renamingAttribute = attributeName;
+                closeAttributeContextMenu();
+                render();
+            });
+            menu.appendChild(renameItem);
+
+            const removeItem = document.createElement("div");
+            removeItem.className = "attribute-context-item";
+            removeItem.textContent = "Remove";
+            removeItem.addEventListener("click", (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                vscode.postMessage({
+                    type: "removeAttribute",
+                    attributeName: attributeName
+                });
+                closeAttributeContextMenu();
+            });
+            menu.appendChild(removeItem);
+
+            document.body.appendChild(menu);
+            currentContextMenu = menu;
+
+            const gearRect = gearElement.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            menu.style.position = "fixed";
+
+            // align bottom-right of menu with bottom-right of gear icon
+            let left = gearRect.right - menuRect.width;
+            let top = gearRect.bottom - menuRect.height - 2;
+
+            // prevent overflow - adjust if menu would go off screen
+            if (left < 4) {
+                left = gearRect.left;
+            }
+            if (top < 4) {
+                top = gearRect.bottom + 2;
+            }
+            if (left + menuRect.width > viewportWidth - 4) {
+                left = viewportWidth - menuRect.width - 4;
+            }
+            if (top + menuRect.height > viewportHeight - 4) {
+                top = viewportHeight - menuRect.height - 4;
+            }
+
+            menu.style.left = `${left}px`;
+            menu.style.top = `${top}px`;
+
+            setTimeout(() => {
+                const closeHandler = (e) => {
+                    const target = e.target;
+                    if (menu.contains(target) ||
+                        target === gearElement ||
+                        target.tagName === "INPUT" ||
+                        target.tagName === "SELECT" ||
+                        target.closest("input") ||
+                        target.closest("select") ||
+                        target.closest(".attribute-context-menu")) {
+                        return;
+                    }
+                    closeAttributeContextMenu();
+                    document.removeEventListener("mousedown", closeHandler);
+                    document.removeEventListener("click", closeHandler);
+                };
+                menu.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                });
+                document.addEventListener("mousedown", closeHandler, true);
+                document.addEventListener("click", closeHandler, true);
+            }, 0);
+        }
+
+        function closeAttributeContextMenu() {
+            if (currentContextMenu) {
+                currentContextMenu.remove();
+                currentContextMenu = null;
+            }
+        }
+
+        function createAttributeEditor(attr) {
+            const type = attr.type;
+
+            switch (type) {
+                case "boolean": {
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.className = "value-checkbox";
+                    checkbox.checked = !!attr.value;
+                    checkbox.addEventListener("change", () => {
+                        postSetAttribute(attr.name, checkbox.checked);
+                    });
+                    return checkbox;
+                }
+
+                case "number": {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "value-input";
+                    input.value = attr.value ?? "0";
+                    input.addEventListener("change", () => {
+                        const numericValue = parseFloat(input.value);
+                        if (Number.isFinite(numericValue)) {
+                            postSetAttribute(attr.name, numericValue);
+                        }
+                    });
+                    return input;
+                }
+
+                case "Vector2": {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "value-input";
+                    if (attr.value && typeof attr.value === "object") {
+                        input.value = `${attr.value.X ?? 0}, ${attr.value.Y ?? 0}`;
+                    } else {
+                        input.value = "0, 0";
+                    }
+                    input.addEventListener("change", () => {
+                        const parts = input.value.split(",").map(s => parseFloat(s.trim()));
+                        if (parts.length >= 2 && parts.every(n => Number.isFinite(n))) {
+                            postSetAttribute(attr.name, { X: parts[0], Y: parts[1] });
+                        }
+                    });
+                    return input;
+                }
+
+                case "Vector3": {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "value-input";
+                    if (attr.value && typeof attr.value === "object") {
+                        input.value = `${attr.value.X ?? 0}, ${attr.value.Y ?? 0}, ${attr.value.Z ?? 0}`;
+                    } else {
+                        input.value = "0, 0, 0";
+                    }
+                    input.addEventListener("change", () => {
+                        const parts = input.value.split(",").map(s => parseFloat(s.trim()));
+                        if (parts.length >= 3 && parts.every(n => Number.isFinite(n))) {
+                            postSetAttribute(attr.name, { X: parts[0], Y: parts[1], Z: parts[2] });
+                        }
+                    });
+                    return input;
+                }
+
+                case "UDim": {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "value-input";
+                    if (attr.value && typeof attr.value === "object") {
+                        input.value = `${attr.value.Scale ?? 0}, ${attr.value.Offset ?? 0}`;
+                    } else {
+                        input.value = "0, 0";
+                    }
+                    input.addEventListener("change", () => {
+                        const parts = input.value.split(",").map(s => parseFloat(s.trim()));
+                        if (parts.length >= 2 && parts.every(n => Number.isFinite(n))) {
+                            postSetAttribute(attr.name, { Scale: parts[0], Offset: parts[1] });
+                        }
+                    });
+                    return input;
+                }
+
+                case "UDim2": {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "value-input";
+                    if (attr.value && attr.value.X && attr.value.Y) {
+                        input.value = `${attr.value.X.Scale ?? 0}, ${attr.value.X.Offset ?? 0}, ${attr.value.Y.Scale ?? 0}, ${attr.value.Y.Offset ?? 0}`;
+                    } else {
+                        input.value = "0, 0, 0, 0";
+                    }
+                    input.addEventListener("change", () => {
+                        const parts = input.value.split(",").map(s => parseFloat(s.trim()));
+                        if (parts.length >= 4 && parts.every(n => Number.isFinite(n))) {
+                            postSetAttribute(attr.name, {
+                                X: { Scale: parts[0], Offset: parts[1] },
+                                Y: { Scale: parts[2], Offset: parts[3] }
+                            });
+                        }
+                    });
+                    return input;
+                }
+
+                case "Color3": {
+                    const input = document.createElement("input");
+                    input.type = "color";
+                    input.className = "value-input";
+                    input.style.padding = "0";
+                    input.style.height = "18px";
+
+                    if (attr.value && typeof attr.value === "object") {
+                        const r = Math.max(0, Math.min(255, Math.round((attr.value.R ?? 0) * 255)));
+                        const g = Math.max(0, Math.min(255, Math.round((attr.value.G ?? 0) * 255)));
+                        const b = Math.max(0, Math.min(255, Math.round((attr.value.B ?? 0) * 255)));
+                        input.value = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+                    } else {
+                        input.value = "#ffffff";
+                    }
+
+                    const updateColor = () => {
+                        const r = parseInt(input.value.slice(1, 3), 16) / 255;
+                        const g = parseInt(input.value.slice(3, 5), 16) / 255;
+                        const b = parseInt(input.value.slice(5, 7), 16) / 255;
+                        postSetAttribute(attr.name, { R: r, G: g, B: b });
+                    };
+                    input.addEventListener("change", updateColor);
+                    return input;
+                }
+
+                case "NumberRange": {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "value-input";
+                    if (attr.value && typeof attr.value === "object") {
+                        input.value = `${attr.value.Min ?? 0}, ${attr.value.Max ?? 0}`;
+                    } else {
+                        input.value = "0, 0";
+                    }
+                    input.addEventListener("change", () => {
+                        const parts = input.value.split(",").map(s => parseFloat(s.trim()));
+                        if (parts.length >= 2 && parts.every(n => Number.isFinite(n))) {
+                            postSetAttribute(attr.name, { Min: parts[0], Max: parts[1] });
+                        }
+                    });
+                    return input;
+                }
+
+                case "string": {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "value-input";
+                    input.value = attr.value ?? "";
+                    input.addEventListener("change", () => {
+                        postSetAttribute(attr.name, input.value);
+                    });
+                    return input;
+                }
+
+                default: {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "value-input";
+                    input.value = attr.value != null ? String(attr.value) : "";
+                    input.addEventListener("change", () => {
+                        postSetAttribute(attr.name, input.value);
+                    });
+                    return input;
+                }
+            }
+        }
+
+        function postSetAttribute(attributeName, attributeValue) {
+            vscode.postMessage({
+                type: "setAttribute",
+                attributeName,
+                attributeValue
+            });
+        }
+
+        function openAttributeModal() {
+            const modal = document.getElementById("attribute-modal");
+            if (!modal) {
+                createAttributeModal();
+            }
+            const modalElement = document.getElementById("attribute-modal");
+            modalElement.style.display = "flex";
+
+            const nameInput = document.getElementById("attribute-name-input");
+            if (nameInput) {
+                nameInput.value = "";
+                setTimeout(() => nameInput.focus(), 10);
+            }
+
+            const typeSelect = document.getElementById("attribute-type-select");
+            if (typeSelect) {
+                typeSelect.selectedIndex = 0;
+            }
+
+            updateCharCounter();
+        }
+
+        function closeAttributeModal() {
+            const modal = document.getElementById("attribute-modal");
+            if (modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        function createAttributeModal() {
+            const modal = document.createElement("div");
+            modal.id = "attribute-modal";
+            modal.className = "attribute-modal";
+            modal.style.display = "none";
+
+            const content = document.createElement("div");
+            content.className = "attribute-modal-content";
+
+            const body = document.createElement("div");
+            body.className = "attribute-modal-body";
+
+            const nameField = document.createElement("div");
+            nameField.className = "attribute-modal-field";
+            const nameLabel = document.createElement("label");
+            nameLabel.className = "attribute-modal-label";
+            nameLabel.textContent = "Name";
+            const nameInput = document.createElement("input");
+            nameInput.id = "attribute-name-input";
+            nameInput.type = "text";
+            nameInput.className = "attribute-modal-input";
+            nameInput.maxLength = 100;
+            nameInput.addEventListener("input", updateCharCounter);
+            nameInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    const typeSelect = document.getElementById("attribute-type-select");
+                    const name = nameInput.value.trim();
+                    const type = typeSelect ? typeSelect.value : "string";
+                    if (name) {
+                        vscode.postMessage({
+                            type: "addAttribute",
+                            attributeName: name,
+                            attributeType: type
+                        });
+                        closeAttributeModal();
+                    }
+                } else if (e.key === "Escape") {
+                    closeAttributeModal();
+                }
+            });
+            const charCounter = document.createElement("div");
+            charCounter.id = "attribute-char-counter";
+            charCounter.className = "attribute-modal-char-counter";
+            charCounter.textContent = "0/100";
+            nameField.appendChild(nameLabel);
+            nameField.appendChild(nameInput);
+            nameField.appendChild(charCounter);
+
+            const typeField = document.createElement("div");
+            typeField.className = "attribute-modal-field";
+            const typeLabel = document.createElement("label");
+            typeLabel.className = "attribute-modal-label";
+            typeLabel.textContent = "Type";
+            const typeSelect = document.createElement("select");
+            typeSelect.id = "attribute-type-select";
+            typeSelect.className = "attribute-modal-select";
+
+            const types = ["string", "number", "boolean", "Color3", "Vector2", "Vector3", "UDim", "UDim2", "BrickColor", "NumberRange", "NumberSequence", "ColorSequence"];
+            for (const type of types) {
+                const option = document.createElement("option");
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
+            }
+
+            typeField.appendChild(typeLabel);
+            typeField.appendChild(typeSelect);
+
+            body.appendChild(nameField);
+            body.appendChild(typeField);
+
+            const footer = document.createElement("div");
+            footer.className = "attribute-modal-footer";
+
+            const saveButton = document.createElement("button");
+            saveButton.className = "attribute-modal-button primary";
+            saveButton.textContent = "Save";
+            saveButton.addEventListener("click", () => {
+                const name = nameInput.value.trim();
+                const type = typeSelect.value;
+                if (name) {
+                    vscode.postMessage({
+                        type: "addAttribute",
+                        attributeName: name,
+                        attributeType: type
+                    });
+                    closeAttributeModal();
+                }
+            });
+
+            const cancelButton = document.createElement("button");
+            cancelButton.className = "attribute-modal-button secondary";
+            cancelButton.textContent = "Cancel";
+            cancelButton.addEventListener("click", closeAttributeModal);
+
+            footer.appendChild(saveButton);
+            footer.appendChild(cancelButton);
+
+            content.appendChild(body);
+            content.appendChild(footer);
+            modal.appendChild(content);
+
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) {
+                    closeAttributeModal();
+                }
+            });
+
+            document.body.appendChild(modal);
+        }
+
+        function updateCharCounter() {
+            const nameInput = document.getElementById("attribute-name-input");
+            const charCounter = document.getElementById("attribute-char-counter");
+            if (nameInput && charCounter) {
+                charCounter.textContent = `${nameInput.value.length}/100`;
+            }
         }
 
         window.addEventListener("message", (event) => {

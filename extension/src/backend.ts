@@ -11,10 +11,17 @@ export type Operation =
     | { type: "paste_instance"; targetNodeId: string | null }
     | { type: "create_instance"; parentId: string; className: string }
     | { type: "get_properties"; nodeId: string }
+    | { type: "deselect_instance" }
     | { type: "set_property"; nodeId: string; propertyName: string; propertyValue: any }
+    | { type: "add_tag"; nodeId: string; tagName: string }
+    | { type: "remove_tag"; nodeId: string; tagName: string }
+    | { type: "add_attribute"; nodeId: string; attributeName: string; attributeType: string }
+    | { type: "set_attribute"; nodeId: string; attributeName: string; attributeValue: any }
+    | { type: "remove_attribute"; nodeId: string; attributeName: string }
+    | { type: "rename_attribute"; nodeId: string; oldName: string; newName: string }
 
 export type OperationResult =
-    | { success: true; data?: string | PropertyInfo[] | boolean }
+    | { success: true; data?: string | PropertiesData | boolean }
     | { success: false; error: string };
 
 export type PropertyInfo = {
@@ -30,6 +37,18 @@ export type PropertyInfo = {
     referencedInstanceClass?: string;
 };
 
+export type AttributeInfo = {
+    name: string;
+    type: string;
+    value: any;
+};
+
+export type PropertiesData = {
+    properties: PropertyInfo[];
+    tags: string[];
+    attributes: AttributeInfo[];
+};
+
 export type TextRange = {
     start: { line: number; character: number };
     end: { line: number; character: number };
@@ -38,6 +57,7 @@ export type TextRange = {
 type RobloxInboundMessage =
     | { type: "explorer_snapshot"; requestId?: string; payload?: Snapshot }
     | { type: "operation_result"; requestId?: string; operationId: string; result: OperationResult }
+    | { type: "property_update"; nodeId: string; properties: PropertiesData }
     | { type: "handshake"; timestamp: number }
     | { type: "ack"; timestamp: number }
     | { type: string; requestId?: string; payload?: unknown };
@@ -53,6 +73,7 @@ export class VerdeBackend {
     private readonly statusBarItem: vscode.StatusBarItem;
     private readonly onSnapshotReceived: (snapshot: Snapshot) => void;
     private readonly onConnectionLost?: () => void;
+    private onPropertyUpdate?: (nodeId: string, properties: PropertiesData) => void;
 
     private webSocketServer: WebSocketServer | null = null;
     private clients: Set<WebSocket> = new Set();
@@ -194,20 +215,65 @@ export class VerdeBackend {
         });
     }
 
-    public async getProperties(nodeId: string): Promise<PropertyInfo[]> {
+    public async getProperties(nodeId: string): Promise<PropertiesData> {
         const result = await this.sendOperation({ type: "get_properties", nodeId });
-        if (result.success && Array.isArray(result.data)) {
-            return result.data as PropertyInfo[];
+        if (result.success && result.data) {
+            return result.data as PropertiesData;
         }
         throw new Error(result.success ? "No data returned" : result.error);
     }
 
-    public async setProperty(nodeId: string, propertyName: string, propertyValue: any): Promise<PropertyInfo[]> {
+    public setPropertyUpdateCallback(callback: (nodeId: string, properties: PropertiesData) => void): void {
+        this.onPropertyUpdate = callback;
+    }
+
+    public async setProperty(nodeId: string, propertyName: string, propertyValue: any): Promise<void> {
         const result = await this.sendOperation({ type: "set_property", nodeId, propertyName, propertyValue });
-        if (result.success && Array.isArray(result.data)) {
-            return result.data as PropertyInfo[];
+        if (!result.success) {
+            throw new Error(result.error);
         }
-        throw new Error(result.success ? "No data returned" : result.error);
+    }
+
+    public async addTag(nodeId: string, tagName: string): Promise<void> {
+        const result = await this.sendOperation({ type: "add_tag", nodeId, tagName });
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+    }
+
+    public async removeTag(nodeId: string, tagName: string): Promise<void> {
+        const result = await this.sendOperation({ type: "remove_tag", nodeId, tagName });
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+    }
+
+    public async addAttribute(nodeId: string, attributeName: string, attributeType: string): Promise<void> {
+        const result = await this.sendOperation({ type: "add_attribute", nodeId, attributeName, attributeType });
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+    }
+
+    public async setAttribute(nodeId: string, attributeName: string, attributeValue: any): Promise<void> {
+        const result = await this.sendOperation({ type: "set_attribute", nodeId, attributeName, attributeValue });
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+    }
+
+    public async removeAttribute(nodeId: string, attributeName: string): Promise<void> {
+        const result = await this.sendOperation({ type: "remove_attribute", nodeId, attributeName });
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+    }
+
+    public async renameAttribute(nodeId: string, oldName: string, newName: string): Promise<void> {
+        const result = await this.sendOperation({ type: "rename_attribute", nodeId, oldName, newName });
+        if (!result.success) {
+            throw new Error(result.error);
+        }
     }
 
     public async waitForNextSnapshot(): Promise<Snapshot> {
@@ -281,6 +347,16 @@ export class VerdeBackend {
             case "handshake": {
                 this.lastAckTime = Date.now();
                 this.send(socket, { type: "ack" });
+                return;
+            }
+
+            case "property_update": {
+                this.lastAckTime = Date.now();
+                const propertyUpdateMessage = message as { type: "property_update"; nodeId: string; properties: PropertiesData; requestId?: string };
+                if (this.onPropertyUpdate) {
+                    this.onPropertyUpdate(propertyUpdateMessage.nodeId, propertyUpdateMessage.properties);
+                }
+                this.send(socket, { type: "ack", requestId: propertyUpdateMessage.requestId });
                 return;
             }
 

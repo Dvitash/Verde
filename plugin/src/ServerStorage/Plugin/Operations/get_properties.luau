@@ -1,3 +1,4 @@
+local PropertyTracker = require(script.Parent.Parent.Shared.PropertyTracker)
 local Filter = require(script.Parent.Parent.Packages.DumpParser.Filter)
 local DumpParser = require(script.Parent.Parent.Packages.DumpParser)
 local InstanceMap = require(script.Parent.Parent.Shared.InstanceMap)
@@ -186,5 +187,80 @@ return function(operation)
 		})
 	end
 
-	return safeProperties
+	local tags = instance:GetTags()
+
+	local attributes = {}
+	local success, attributesTable = pcall(function()
+		return instance:GetAttributes()
+	end)
+	if success and attributesTable then
+		for attrName, attrValue in attributesTable do
+			local attrType = typeof(attrValue)
+			local serializedValue = attrValue
+
+			if typeof(attrValue) == "Color3" then
+				serializedValue = {
+					R = attrValue.R,
+					G = attrValue.G,
+					B = attrValue.B,
+				}
+			elseif typeof(attrValue) == "Vector3" then
+				serializedValue = {
+					X = math.round(attrValue.X * 1000) / 1000,
+					Y = math.round(attrValue.Y * 1000) / 1000,
+					Z = math.round(attrValue.Z * 1000) / 1000,
+				}
+			elseif typeof(attrValue) == "Vector2" then
+				serializedValue = {
+					X = attrValue.X,
+					Y = attrValue.Y,
+				}
+			elseif typeof(attrValue) == "UDim2" then
+				serializedValue = {
+					X = {
+						Scale = attrValue.X.Scale,
+						Offset = attrValue.X.Offset,
+					},
+					Y = {
+						Scale = attrValue.Y.Scale,
+						Offset = attrValue.Y.Offset,
+					},
+				}
+			elseif typeof(attrValue) == "UDim" then
+				serializedValue = {
+					Scale = attrValue.Scale,
+					Offset = attrValue.Offset,
+				}
+			elseif typeof(attrValue) == "BrickColor" then
+				serializedValue = {
+					R = attrValue.Color.R,
+					G = attrValue.Color.G,
+					B = attrValue.Color.B,
+					Name = attrValue.Name,
+					Number = attrValue.Number,
+				}
+			elseif typeof(attrValue) == "NumberRange" then
+				serializedValue = {
+					Min = attrValue.Min,
+					Max = attrValue.Max,
+				}
+			end
+
+			table.insert(attributes, {
+				name = attrName,
+				type = attrType,
+				value = serializedValue,
+			})
+		end
+	end
+
+	local result = {
+		properties = safeProperties,
+		tags = tags,
+		attributes = attributes,
+	}
+
+	PropertyTracker.setupTracking(nodeId)
+
+	return result
 end

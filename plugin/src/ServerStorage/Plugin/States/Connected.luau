@@ -8,6 +8,7 @@ local WebSocketClient = require(script.Parent.Parent.WebSocketClient)
 local InstanceMap = require(script.Parent.Parent.Shared.InstanceMap)
 local Services = require(script.Parent.Parent.Shared.Services)
 local Promise = require(script.Parent.Parent.Packages.Promise)
+local PropertyTracker = require(SharedFolder.PropertyTracker)
 local ButtonInstance = require(SharedFolder.ButtonInstance)
 local Icons = require(SharedFolder.Icons)
 local State = require(SharedFolder.State)
@@ -107,6 +108,45 @@ local function _sendOperationResult(
 	end
 end
 
+local propertyUpdatePromise: any = nil
+local getProperties = require(script.Parent.Parent.Operations.get_properties)
+
+local function _sendPropertyUpdate(client: Client, nodeId: string)
+	if not client or not client.connected then
+		return
+	end
+
+	if propertyUpdatePromise then
+		propertyUpdatePromise:cancel()
+	end
+
+	propertyUpdatePromise = Promise.delay(0.1):andThen(function()
+		propertyUpdatePromise = nil
+
+		local propertiesResult = getProperties({ nodeId = nodeId })
+		if not propertiesResult then
+			return
+		end
+
+		local message = {
+			type = "property_update",
+			nodeId = nodeId,
+			properties = propertiesResult,
+		}
+
+		local jsonSuccess, jsonString = pcall(function()
+			return HttpService:JSONEncode(message)
+		end)
+
+		if not jsonSuccess then
+			warn("[verde] failed to encode property update:", jsonString)
+			return
+		end
+
+		client:send(jsonString)
+	end)
+end
+
 local function _handleOperation(client: Client, operationId: string, operation: any)
 	if not operation or not operation.type then
 		_sendOperationResult(client, operationId, false, "invalid_operation")
@@ -179,6 +219,13 @@ local function _listenToChanges(client: Client, descendant: Instance)
 				_queueSnapshot(client)
 			end)
 		)
+
+		table.insert(
+			connections,
+			descendant.AttributeChanged:Connect(function()
+				_queueSnapshot(client)
+			end)
+		)
 	end
 end
 
@@ -192,6 +239,10 @@ connected.onEnter = function(transitionTo: (string) -> (), client: WebSocketClie
 	end
 
 	connected.client = client
+
+	PropertyTracker.setUpdateCallback(function(nodeId: string)
+		_sendPropertyUpdate(client, nodeId)
+	end)
 
 	client:on("message", function(data)
 		if not data or not data.type then
@@ -255,12 +306,18 @@ connected.onExit = function()
 		connected.client = nil
 	end
 
+	PropertyTracker.cleanupTracking()
+
 	for _, connection in connections do
 		connection:Disconnect()
 	end
 
 	if snapshotPromise then
 		snapshotPromise:cancel()
+	end
+
+	if propertyUpdatePromise then
+		propertyUpdatePromise:cancel()
 	end
 
 	table.clear(connections)

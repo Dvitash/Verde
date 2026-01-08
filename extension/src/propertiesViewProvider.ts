@@ -17,6 +17,11 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
 
 	constructor(backend: VerdeBackend, private readonly extensionUri: vscode.Uri) {
 		this.backend = backend;
+		this.backend.setPropertyUpdateCallback((nodeId: string, properties: any) => {
+			if (nodeId === this.currentNodeId) {
+				this.updateProperties(properties);
+			}
+		});
 	}
 
 	public resolveWebviewView(
@@ -52,6 +57,11 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public show(node: Node): void {
+		if (this.currentNodeId && this.currentNodeId !== node.id) {
+			this.backend.sendOperation({ type: "deselect_instance" }).catch(() => {
+				// ignore errors
+			});
+		}
 		this.currentNodeId = node.id;
 		this.currentNodeName = node.name;
 		this.currentNodeClassName = node.className;
@@ -71,11 +81,11 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
 		}
 
 		try {
-			const properties = await this.backend.getProperties(this.currentNodeId);
+			const propertiesData = await this.backend.getProperties(this.currentNodeId);
 
 			this.webviewView.webview.postMessage({
 				type: "updateProperties",
-				properties,
+				properties: propertiesData,
 				nodeName: this.currentNodeName,
 				nodeClassName: this.currentNodeClassName,
 			});
@@ -84,6 +94,24 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
+
+	private updateProperties(properties: any): void {
+		if (this.isUsingSeparatePanel && this.separatePanel) {
+			this.separatePanel.webview.postMessage({
+				type: "updateProperties",
+				properties: properties,
+				nodeName: this.currentNodeName,
+				nodeClassName: this.currentNodeClassName,
+			});
+		} else if (this.webviewView) {
+			this.webviewView.webview.postMessage({
+				type: "updateProperties",
+				properties: properties,
+				nodeName: this.currentNodeName,
+				nodeClassName: this.currentNodeClassName,
+			});
+		}
+	}
 
 	private async handleMessage(message: any): Promise<void> {
 		if (message.type === "navigateToInstance") {
@@ -96,18 +124,45 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
 			return;
 		}
 
-		if (this.currentNodeId && message.type === "setProperty") {
-			try {
-				const properties = await this.backend.setProperty(this.currentNodeId, message.propertyName, message.propertyValue);
-				this.webviewView!.webview.postMessage({
-					type: "updateProperties",
-					properties,
-					nodeName: this.currentNodeName,
-					nodeClassName: this.currentNodeClassName,
-				});
-			} catch (error) {
-				vscode.window.showErrorMessage(`Failed to update property: ${error}`);
+		if (!this.currentNodeId) {
+			return;
+		}
+
+		try {
+			switch (message.type) {
+				case "setProperty":
+					await this.backend.setProperty(this.currentNodeId, message.propertyName, message.propertyValue);
+					break;
+
+				case "addTag":
+					await this.backend.addTag(this.currentNodeId, message.tagName);
+					break;
+
+				case "removeTag":
+					await this.backend.removeTag(this.currentNodeId, message.tagName);
+					break;
+
+				case "addAttribute":
+					await this.backend.addAttribute(this.currentNodeId, message.attributeName, message.attributeType);
+					break;
+
+				case "setAttribute":
+					await this.backend.setAttribute(this.currentNodeId, message.attributeName, message.attributeValue);
+					break;
+
+				case "removeAttribute":
+					await this.backend.removeAttribute(this.currentNodeId, message.attributeName);
+					break;
+
+				case "renameAttribute":
+					await this.backend.renameAttribute(this.currentNodeId, message.oldName, message.newName);
+					break;
+
+				default:
+					return;
 			}
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to update: ${error}`);
 		}
 	}
 
@@ -165,18 +220,45 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
 				return;
 			}
 
-			if (this.currentNodeId && message.type === "setProperty") {
-				try {
-					const properties = await this.backend.setProperty(this.currentNodeId, message.propertyName, message.propertyValue);
-					panel.webview.postMessage({
-						type: "updateProperties",
-						properties,
-						nodeName: this.currentNodeName,
-						nodeClassName: this.currentNodeClassName,
-					});
-				} catch (error) {
-					vscode.window.showErrorMessage(`Failed to update property: ${error}`);
+			if (!this.currentNodeId) {
+				return;
+			}
+
+			try {
+				switch (message.type) {
+					case "setProperty":
+						await this.backend.setProperty(this.currentNodeId, message.propertyName, message.propertyValue);
+						break;
+
+					case "addTag":
+						await this.backend.addTag(this.currentNodeId, message.tagName);
+						break;
+
+					case "removeTag":
+						await this.backend.removeTag(this.currentNodeId, message.tagName);
+						break;
+
+					case "addAttribute":
+						await this.backend.addAttribute(this.currentNodeId, message.attributeName, message.attributeType);
+						break;
+
+					case "setAttribute":
+						await this.backend.setAttribute(this.currentNodeId, message.attributeName, message.attributeValue);
+						break;
+
+					case "removeAttribute":
+						await this.backend.removeAttribute(this.currentNodeId, message.attributeName);
+						break;
+
+					case "renameAttribute":
+						await this.backend.renameAttribute(this.currentNodeId, message.oldName, message.newName);
+						break;
+
+					default:
+						return;
 				}
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to update: ${error}`);
 			}
 		});
 
@@ -205,10 +287,10 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
 		}
 
 		try {
-			const properties = await this.backend.getProperties(this.currentNodeId);
+			const propertiesData = await this.backend.getProperties(this.currentNodeId);
 			webview.postMessage({
 				type: "updateProperties",
-				properties,
+				properties: propertiesData,
 				nodeName: this.currentNodeName,
 				nodeClassName: this.currentNodeClassName,
 			});

@@ -1,5 +1,4 @@
 local InstanceMap = require(script.Parent.Parent.Shared.InstanceMap)
-local getProperties = require(script.Parent.get_properties)
 local print = require(script.Parent.Parent.Utils.print)
 
 return function(operation)
@@ -111,10 +110,5 @@ return function(operation)
 		return false, errorMessage
 	end
 
-	local propertiesResult = getProperties({ nodeId = operation.nodeId })
-	if propertiesResult then
-		return propertiesResult
-	else
-		return false, "Failed to get updated properties"
-	end
+	return true
 end
