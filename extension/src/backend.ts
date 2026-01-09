@@ -362,7 +362,6 @@ export class VerdeBackend {
 
             case "ack": {
                 this.lastAckTime = Date.now();
-                this.log(`received ack from plugin`);
                 return;
             }
 
