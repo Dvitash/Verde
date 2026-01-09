@@ -36,6 +36,10 @@ export class SourcemapParser {
 
         const filePath = this.searchNode(this.sourcemap.node, instancePath, 0);
         if (filePath) {
+            // check if path is absolute (contains drive letter or starts with /)
+            if (filePath.match(/^[a-zA-Z]:/) || filePath.startsWith('/')) {
+                return vscode.Uri.file(filePath);
+            }
             return vscode.Uri.joinPath(this.sourcemap.baseUri, filePath);
         }
         return null;
