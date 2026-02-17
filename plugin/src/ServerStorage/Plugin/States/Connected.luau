@@ -61,7 +61,7 @@ local function _sendSnapshot(client: Client)
 	end)
 
 	if not jsonSuccess then
-		error("sendSnapshot: failed to encode JSON:", jsonString)
+		error("sendSnapshot: failed to encode JSON: " .. jsonString)
 		return
 	end
 
