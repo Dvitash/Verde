@@ -1,9 +1,13 @@
+// if syncToFilesystem is enabled, try to do that instead before falling back to verde->studio sync
+
 import * as vscode from "vscode";
 import { RobloxExplorerProvider, Node } from "./robloxExplorerProvider";
 import { VerdeBackend } from "./backend";
 import { getClassNames } from "./robloxClasses";
 import { isScriptClass, scriptIconClass } from "./utils";
 import { getThemeCssBlock, getThemeScriptBlock, getThemeStyleAttribute } from "./webviewTheme";
+import { SourcemapParser } from "./sourcemapParser";
+import { isSyncableClass, createOnFilesystem, moveOnFilesystem } from "./filesystemSync";
 
 type WebviewNode = {
   id: string;
@@ -26,6 +30,7 @@ export class ExplorerViewProvider implements vscode.WebviewViewProvider {
     private readonly extensionUri: vscode.Uri,
     private readonly explorerProvider: RobloxExplorerProvider,
     private readonly backend: VerdeBackend,
+    private readonly sourcemapParser: SourcemapParser,
   ) {
     this.explorerProvider.onChange(() => this.pushTree());
   }
@@ -191,6 +196,31 @@ export class ExplorerViewProvider implements vscode.WebviewViewProvider {
         const nodeId = msg.nodeId as string | undefined;
         const newParentId = msg.newParentId as string | undefined;
         if (nodeId == null) break;
+
+        const fsSync = vscode.workspace.getConfiguration('verde').get<boolean>('syncToFilesystem', false);
+        if (fsSync && newParentId) {
+          const node = this.explorerProvider.getNodeById(nodeId);
+          const newParent = this.explorerProvider.getNodeById(newParentId);
+          if (node && newParent && isSyncableClass(node.className)) {
+            (async () => {
+              await this.sourcemapParser.loadSourcemaps();
+              const nodePath = this.getInstancePath(node);
+              const newParentPath = this.getInstancePath(newParent);
+              const moved = await moveOnFilesystem(this.sourcemapParser, nodePath, node.className, newParentPath);
+              if (moved) return;
+              const result = await this.backend.sendOperation({
+                type: "move_node",
+                nodeId,
+                newParentId: newParentId ?? null,
+              });
+              if (!result.success) {
+                vscode.window.showErrorMessage(result.error ?? "Failed to move instance.");
+              }
+            })().catch((err) => vscode.window.showErrorMessage(String(err)));
+            break;
+          }
+        }
+
         this.backend.sendOperation({
           type: "move_node",
           nodeId,
@@ -217,7 +247,40 @@ export class ExplorerViewProvider implements vscode.WebviewViewProvider {
     return null;
   }
 
+  private getInstancePath(node: Node): string[] {
+    const path: string[] = [node.name];
+    let current = node;
+    while (current.parentId) {
+      const parent = this.explorerProvider.getNodeById(current.parentId);
+      if (!parent) break;
+      path.unshift(parent.name);
+      current = parent;
+    }
+    return path;
+  }
+
   private async doCreateInstance(parentId: string, className: string): Promise<void> {
+    const fsSync = vscode.workspace.getConfiguration('verde').get<boolean>('syncToFilesystem', false);
+    if (fsSync && isSyncableClass(className)) {
+      const parentNode = this.explorerProvider.getNodeById(parentId);
+      if (parentNode) {
+        await this.sourcemapParser.loadSourcemaps();
+        const parentPath = this.getInstancePath(parentNode);
+        const fsResult = await createOnFilesystem(this.sourcemapParser, parentPath, className);
+        if (fsResult.created) {
+          if (fsResult.fileUri && isScriptClass(className)) {
+            try {
+              const document = await vscode.workspace.openTextDocument(fsResult.fileUri);
+              await vscode.window.showTextDocument(document, { viewColumn: vscode.ViewColumn.One, preview: false });
+            } catch (error) {
+              console.debug('Failed to open created script:', error);
+            }
+          }
+          return;
+        }
+      }
+    }
+
     try {
       const result = await this.backend.sendOperation({
         type: "create_instance",

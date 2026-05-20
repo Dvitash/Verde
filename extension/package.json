@@ -58,6 +58,11 @@
           "type": "string",
           "default": "#264f78",
           "description": "Background color for selected items when Colored Selection is enabled"
+        },
+        "verde.syncToFilesystem": {
+          "type": "boolean",
+          "default": false,
+          "description": "Instance operations are performed on files in your filesystem, changes to studio are handled by the sync tool(e.g rojo)"
         }
       }
     },

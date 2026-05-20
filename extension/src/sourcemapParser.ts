@@ -9,6 +9,7 @@ interface SourcemapNode {
 
 export class SourcemapParser {
     private sourcemap: { node: SourcemapNode; baseUri: vscode.Uri } | null = null;
+    private projectTree: any = null;
 
     constructor(private workspaceRoot: vscode.Uri) { }
 
@@ -23,10 +24,70 @@ export class SourcemapParser {
             const baseUri = vscode.Uri.joinPath(uri, '..');
             this.sourcemap = { node: sourcemap, baseUri };
             console.log(`Loaded sourcemap from ${sourcemapPath}`);
+
+            await this.loadProject(baseUri);
         } catch (error) {
             console.warn(`Failed to load sourcemap at ${sourcemapPath}:`, error);
             this.sourcemap = null;
         }
+    }
+
+    private async loadProject(baseUri: vscode.Uri): Promise<void> {
+        const projectNames = ['default.project.json', 'default.project.jsonc'];
+        for (const name of projectNames) {
+            try {
+                const uri = vscode.Uri.joinPath(baseUri, name);
+                const content = await vscode.workspace.fs.readFile(uri);
+                const project = JSON.parse(content.toString());
+                this.projectTree = project?.tree ?? null;
+                return;
+            } catch { /* try next */ }
+        }
+        this.projectTree = null;
+    }
+
+    private findPathInProject(instancePath: string[]): string | null {
+        if (!this.projectTree) return null;
+
+        let node = this.projectTree;
+        let lastPath: string | null = null;
+        let lastPathIndex = -1;
+
+        for (let i = 0; i < instancePath.length; i++) {
+            if (!node || typeof node !== 'object') break;
+            node = node[instancePath[i]];
+            if (!node) break;
+            if (node['$path']) {
+                lastPath = node['$path'];
+                lastPathIndex = i;
+            }
+        }
+
+        if (lastPath === null) {
+            if (node && typeof node === 'object') {
+                let childPath: string | null = null;
+                let count = 0;
+                for (const key of Object.keys(node)) {
+                    if (key.startsWith('$')) continue;
+                    const child = node[key];
+                    if (child && typeof child === 'object' && child['$path']) {
+                        childPath = child['$path'];
+                        count++;
+                    }
+                }
+                if (count === 1 && childPath) {
+                    return childPath;
+                }
+            }
+            return null;
+        }
+
+        if (lastPathIndex < instancePath.length - 1) {
+            const remaining = instancePath.slice(lastPathIndex + 1);
+            return lastPath + '/' + remaining.join('/');
+        }
+
+        return lastPath;
     }
 
     findFilePath(instancePath: string[]): vscode.Uri | null {
@@ -62,6 +123,106 @@ export class SourcemapParser {
         }
 
         return this.searchNodeForPath(this.sourcemap.node, searchPath, []);
+    }
+
+    findDirectory(instancePath: string[]): vscode.Uri | null {
+        if (!this.sourcemap) {
+            return null;
+        }
+
+        const node = this.getNodeAtPath(this.sourcemap.node, instancePath, 0);
+        if (!node) {
+            return null;
+        }
+
+        if (node.filePaths?.length) {
+            const fp = node.filePaths[0];
+            const base = fp.split('/').pop() || '';
+            if (/^init\./.test(base)) {
+                const dir = fp.substring(0, fp.lastIndexOf('/'));
+                return dir ? this.resolveUri(dir) : null;
+            }
+            const isScript = node.className === 'Script' || node.className === 'LocalScript' || node.className === 'ModuleScript';
+            if (isScript) {
+                return null;
+            }
+        }
+
+        const projectPath = this.findPathInProject(instancePath);
+        if (projectPath) {
+            return this.resolveUri(projectPath);
+        }
+
+        if (this.projectTree) {
+            return null;
+        }
+
+        const desc = this.findDescendantFilePath(node);
+        if (desc) {
+            let dir = desc.path;
+            const slash = dir.lastIndexOf('/');
+            if (slash >= 0) {
+                dir = dir.substring(0, slash);
+            }
+            const descBase = desc.path.split('/').pop() || '';
+            const extraLevel = /^init\./.test(descBase) ? 1 : 0;
+            for (let i = 1; i < desc.depth + extraLevel; i++) {
+                const idx = dir.lastIndexOf('/');
+                if (idx >= 0) {
+                    dir = dir.substring(0, idx);
+                }
+            }
+            if (dir) {
+                return this.resolveUri(dir);
+            }
+        }
+
+        if (instancePath.length > 0) {
+            const parentDir = this.findDirectory(instancePath.slice(0, -1));
+            if (parentDir) {
+                return vscode.Uri.joinPath(parentDir, instancePath[instancePath.length - 1]);
+            }
+        }
+
+        return null;
+    }
+
+    private getNodeAtPath(node: SourcemapNode, path: string[], index: number): SourcemapNode | null {
+        if (index >= path.length) {
+            return node;
+        }
+        if (!node.children) {
+            return null;
+        }
+        for (const child of node.children) {
+            if (child.name === path[index]) {
+                return this.getNodeAtPath(child, path, index + 1);
+            }
+        }
+        return null;
+    }
+
+    private findDescendantFilePath(node: SourcemapNode, depth: number = 1): { path: string; depth: number } | null {
+        if (!node.children) {
+            return null;
+        }
+        for (const child of node.children) {
+            if (child.filePaths?.length) {
+                return { path: child.filePaths[0], depth };
+            }
+            const result = this.findDescendantFilePath(child, depth + 1);
+            if (result) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+    private resolveUri(filePath: string): vscode.Uri {
+        if (filePath.match(/^[a-zA-Z]:/) || filePath.startsWith('/')) {
+            return vscode.Uri.file(filePath);
+        }
+        return vscode.Uri.joinPath(this.sourcemap!.baseUri, filePath);
     }
 
     private searchNode(node: SourcemapNode, path: string[], index: number): string | null {
