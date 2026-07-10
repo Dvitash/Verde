@@ -68,7 +68,7 @@
         "verde.singleClickToOpen": {
           "type": "boolean",
           "default": false,
-          "description": "When enabled, single-clicking an instance opens it immediately. Scripts open in the editor and other instances open in the Properties panel. When disabled, those actions require a double-click."
+          "description": "When enabled, single-clicking a script opens it in the editor; otherwise scripts require a double-click. The Properties panel always follows the single selected instance."
         },
         "verde.iconDirectory": {
           "type": "string",

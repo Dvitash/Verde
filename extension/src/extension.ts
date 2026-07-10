@@ -233,10 +233,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<VerdeA
 			return;
 		}
 
-		if (!vscode.workspace.getConfiguration('verde').get<boolean>('singleClickToOpen', false)) {
-			return;
-		}
-
 		showNodeInProperties(selection[0]);
 	});
 
