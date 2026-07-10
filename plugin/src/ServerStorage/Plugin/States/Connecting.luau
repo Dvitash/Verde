@@ -13,7 +13,7 @@ connecting.onEnter = function(transitionTo: (string) -> (), ...)
 		ButtonInstance.button.Icon = Icons.CONNECTING
 	end
 
-	local client = WebSocketClient.new(Config.WS_URL, {
+	local client = WebSocketClient.new(Config.GetWebSocketUrl(), {
 		debugMode = Config.DEBUG,
 		silentMode = true,
 	})
